@@ -146,3 +146,6 @@ class galactic_snapshot:
         phis = np.arctan2(coordinates[:, 1], coordinates[:, 0])
         numerator = np.sum(masses * np.exp(2j * phis))
         return numerator / denominator
+
+    def cal_Jacobi_energy():
+        pass
