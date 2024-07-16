@@ -107,8 +107,20 @@ void snapH5io::write_rc_infos( unsigned int RbinNum, unsigned int PhiBinNum, dou
 void snapH5io::write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, double Rmin,
                                   double Rmax, double* poses )
 {
-    hsize_t dims_0d[ 1 ] = { ( hsize_t )1 };                       // for attributes
+    hsize_t dims_0d[ 1 ] = { 0 };                                  // for attributes
     hsize_t dims_2d[ 2 ] = { ( hsize_t )RbinNum * PhiBinNum, 3 };  // for coordinates
+
+    dynamic_array< double > rs( RbinNum );
+    dynamic_array< double > phis( PhiBinNum );
+
+    double deltaR   = ( Rmax - Rmin ) / RbinNum;
+    double deltaPhi = 2 * M_PI / PhiBinNum;
+
+    for ( int i = 0; i < ( int )RbinNum; ++i )
+        rs.data_ptr[ i ] = Rmin + deltaR * i;
+
+    for ( int i = 0; i < ( int )PhiBinNum; ++i )
+        phis.data_ptr[ i ] = deltaPhi * i;
 
 
     // create the datasets in the analysis result file
@@ -119,27 +131,38 @@ void snapH5io::write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, 
 
     H5Dwrite( coordinate_setid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, poses );
 
+    // write the used parameters
     hid_t space_id = H5Screate( H5S_SCALAR );
     hid_t attr_id = H5Acreate2( coordinate_setid, "RbinNum", H5T_NATIVE_UINT, space_id, H5P_DEFAULT,
                                 H5P_DEFAULT );
     H5Awrite( attr_id, H5T_NATIVE_UINT, &RbinNum );
     H5Aclose( attr_id );
-
     attr_id = H5Acreate2( coordinate_setid, "PhiBinNum", H5T_NATIVE_UINT, space_id, H5P_DEFAULT,
                           H5P_DEFAULT );
     H5Awrite( attr_id, H5T_NATIVE_UINT, &PhiBinNum );
     H5Aclose( attr_id );
-
     attr_id = H5Acreate2( coordinate_setid, "Rmin", H5T_NATIVE_DOUBLE, space_id, H5P_DEFAULT,
                           H5P_DEFAULT );
     H5Awrite( attr_id, H5T_NATIVE_DOUBLE, &Rmin );
     H5Aclose( attr_id );
-
     attr_id = H5Acreate2( coordinate_setid, "Rmax", H5T_NATIVE_DOUBLE, space_id, H5P_DEFAULT,
                           H5P_DEFAULT );
     H5Awrite( attr_id, H5T_NATIVE_DOUBLE, &Rmax );
     H5Aclose( attr_id );
-
     H5Sclose( space_id );
+
+    // write the used rs and phis
+    dims_0d[ 0 ] = RbinNum;
+    attr_id      = H5Acreate2( coordinate_setid, "Rs", H5T_NATIVE_DOUBLE,
+                               H5Screate_simple( 1, dims_0d, NULL ), H5P_DEFAULT, H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_DOUBLE, rs.data_ptr );
+    H5Aclose( attr_id );
+
+    dims_0d[ 0 ] = PhiBinNum;
+    attr_id      = H5Acreate2( coordinate_setid, "Phis", H5T_NATIVE_DOUBLE,
+                               H5Screate_simple( 1, dims_0d, NULL ), H5P_DEFAULT, H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_DOUBLE, phis.data_ptr );
+    H5Aclose( attr_id );
+
     H5Dclose( coordinate_setid );
 }
