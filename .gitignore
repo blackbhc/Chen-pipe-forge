@@ -1,0 +1,6 @@
+# Xmake cache
+cpp/.xmake/
+cpp/build/
+
+# MacOS Cache
+.DS_Store
