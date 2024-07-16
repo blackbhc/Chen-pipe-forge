@@ -44,7 +44,8 @@ void analyzer_of_snapshot::read_ana_write()
     this->h5io.read_datasets( partNums, coordinates, masses, datasetNames );
 
     // write the coordinates
-    this->h5io.write_coordinates( this->rBinNum, this->phiBinNum, this->coordinates.data_ptr );
+    this->h5io.write_coordinates( this->rBinNum, this->phiBinNum, this->rMin, this->rMax,
+                                  this->coordinates.data_ptr );
 
     int compNum = ( int )partNums.size();
     for ( int i = 0; i < compNum; ++i )

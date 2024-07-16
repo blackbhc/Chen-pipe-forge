@@ -20,7 +20,8 @@ public:
                         vector< double* >& masses, vector< string >& datasetNames );
     void write_rc_infos( unsigned int RbinNum, unsigned int PhiBinNum, double* accs, double* rvs,
                          double* pots, string datasetName );
-    void write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, double* poses );
+    void write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, double Rmin, double Rmax,
+                            double* poses );
 
 private:
     hid_t inFile = -1, outFile = -1;  // file id: simulation file and analysis result file

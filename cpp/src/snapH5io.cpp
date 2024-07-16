@@ -4,6 +4,7 @@
 #include "H5Dpublic.h"
 #include "H5Gpublic.h"
 #include "H5Ppublic.h"
+#include "H5Spublic.h"
 #include "H5public.h"
 #include <string>
 #define LONGER_THAN_NumPart_ThisFile 100
@@ -103,7 +104,8 @@ void snapH5io::write_rc_infos( unsigned int RbinNum, unsigned int PhiBinNum, dou
     H5Gclose( group_id_of_comp );
 }
 
-void snapH5io::write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, double* poses )
+void snapH5io::write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, double Rmin,
+                                  double Rmax, double* poses )
 {
     hsize_t dims_0d[ 1 ] = { ( hsize_t )1 };                       // for attributes
     hsize_t dims_2d[ 2 ] = { ( hsize_t )RbinNum * PhiBinNum, 3 };  // for coordinates
@@ -116,14 +118,28 @@ void snapH5io::write_coordinates( unsigned int RbinNum, unsigned int PhiBinNum, 
                    H5Screate_simple( 2, dims_2d, NULL ), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
 
     H5Dwrite( coordinate_setid, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, poses );
-    hid_t attr_id1 = H5Acreate2( coordinate_setid, "RbinNum", H5T_NATIVE_UINT,
-                                 H5Screate_simple( 1, dims_0d, NULL ), H5P_DEFAULT, H5P_DEFAULT );
-    H5Awrite( attr_id1, H5T_NATIVE_UINT, &RbinNum );
-    hid_t attr_id2 = H5Acreate2( coordinate_setid, "PhiBinNum", H5T_NATIVE_UINT,
-                                 H5Screate_simple( 1, dims_0d, NULL ), H5P_DEFAULT, H5P_DEFAULT );
-    H5Awrite( attr_id2, H5T_NATIVE_UINT, &PhiBinNum );
-    H5Aclose( attr_id1 );
-    H5Aclose( attr_id2 );
 
+    hid_t space_id = H5Screate( H5S_SCALAR );
+    hid_t attr_id = H5Acreate2( coordinate_setid, "RbinNum", H5T_NATIVE_UINT, space_id, H5P_DEFAULT,
+                                H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_UINT, &RbinNum );
+    H5Aclose( attr_id );
+
+    attr_id = H5Acreate2( coordinate_setid, "PhiBinNum", H5T_NATIVE_UINT, space_id, H5P_DEFAULT,
+                          H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_UINT, &PhiBinNum );
+    H5Aclose( attr_id );
+
+    attr_id = H5Acreate2( coordinate_setid, "Rmin", H5T_NATIVE_DOUBLE, space_id, H5P_DEFAULT,
+                          H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_DOUBLE, &Rmin );
+    H5Aclose( attr_id );
+
+    attr_id = H5Acreate2( coordinate_setid, "Rmax", H5T_NATIVE_DOUBLE, space_id, H5P_DEFAULT,
+                          H5P_DEFAULT );
+    H5Awrite( attr_id, H5T_NATIVE_DOUBLE, &Rmax );
+    H5Aclose( attr_id );
+
+    H5Sclose( space_id );
     H5Dclose( coordinate_setid );
 }
