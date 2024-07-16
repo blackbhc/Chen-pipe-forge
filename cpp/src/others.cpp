@@ -43,13 +43,6 @@ vec3 vec3::cross( vec3& another )
     return result;
 }
 
-double acceleration::comp_R( double pos[ 3 ] )
-{
-    vec3 vecOfPos( pos );
-    vecOfPos.normalize();
-    return this->dot( vecOfPos );
-}
-
 void vec3::assign_to( double* array_ptr )
 {
     for ( int i = 0; i < 3; ++i )

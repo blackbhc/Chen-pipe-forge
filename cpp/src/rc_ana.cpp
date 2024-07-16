@@ -57,11 +57,10 @@ void analyzer_of_snapshot::read_ana_write()
             cur_field.accs_at( this->coordinates.data_ptr, this->pos_num );
 
         vector< double > pots = cur_field.pots_at( this->coordinates.data_ptr, this->pos_num );
-        vector< double > rvs  = pots;
+        vector< double > rvs  = cur_field.vcs_at( this->coordinates.data_ptr, this->pos_num );
         dynamic_array< double > accs_array( this->pos_num * 3 );
         for ( int i = 0; i < ( int )this->pos_num; ++i )
         {
-            rvs.at( i ) = accs.at( i ).comp_R( this->coordinates.data_ptr + i );
             accs.at( i ).assign_to( accs_array.data_ptr + 3 * i );
         }
         // write other results

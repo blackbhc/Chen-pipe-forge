@@ -65,6 +65,15 @@ double masses_field::pot_at( double position[ 3 ] )
     return this->newtonian_possion_solver_pot( position );
 }
 
+double masses_field::vc_at( double position[ 3 ] )
+{
+    double acc[ 3 ];
+    this->newtonian_possion_solver_a( position, acc );
+    // VC = sqrt(-vec{an} \dot vec{r} )
+    return std::sqrt(
+        -( position[ 0 ] * acc[ 0 ] + position[ 1 ] * acc[ 1 ] + position[ 2 ] * acc[ 2 ] ) );
+}
+
 vector< acceleration > masses_field::accs_at( double* positions, unsigned int pos_num )
 // force at muti-position
 {
@@ -176,4 +185,65 @@ vector< double > masses_field::pots_at( double* positions, unsigned int pos_num 
     }
 
     return pots_vector;
+}
+
+vector< double > masses_field::vcs_at( double* positions, unsigned int pos_num )
+{
+    unsigned int used_thread = ( unsigned int )( std::thread::hardware_concurrency() / 4 );
+    // at least MIN_THREAD threads
+    used_thread                       = used_thread >= MIN_THREAD ? used_thread : MIN_THREAD;
+    used_thread                       = used_thread <= pos_num ? used_thread : pos_num;
+    unsigned int basic_num_per_thread = pos_num / used_thread;
+    unsigned int extra_num            = pos_num % used_thread;
+    // virtual container of the position ids
+    vector< vector< unsigned int > > container( used_thread,
+                                                vector< unsigned int >( basic_num_per_thread, 0 ) );
+    // the basic ones
+    for ( int i = 0; i < ( int )basic_num_per_thread; ++i )
+    {
+        for ( int j = 0; j < ( int )used_thread; ++j )
+        {
+            container.at( j ).at( i ) = i * used_thread + j;
+        }
+    }
+    // the remains
+    for ( int i = 0; i < ( int )extra_num; ++i )
+    {
+        container.at( i ).push_back( used_thread * basic_num_per_thread + i );
+    }
+
+    // dynamic memory of the acceleration array
+    dynamic_array< double > vcs( pos_num );
+    // the thread function
+    // NOTE: must call the dynamic array by reference, otherwise, it will repeatedly call the
+    // deconstructer
+    auto single_thread = [ this, &positions, &vcs ]( vector< unsigned int > ids ) {
+        double acc[ 3 ];
+        for ( auto id : ids )
+        {
+            this->newtonian_possion_solver_a( positions + 3 * id, acc );
+            // VC = sqrt(-vec{an} \dot vec{r} )
+            vcs.data_ptr[ id ] = std::sqrt( -( *( positions + 3 * id + 0 ) * acc[ 0 ]
+                                               + *( positions + 3 * id + 1 ) * acc[ 1 ]
+                                               + *( positions + 3 * id + 2 ) * acc[ 2 ] ) );
+        }
+    };
+
+    vector< std::thread > threads;
+    for ( int i = 0; i < used_thread; ++i )
+    {
+        threads.push_back( std::thread( single_thread, container.at( i ) ) );
+    }
+    for ( int i = 0; i < used_thread; ++i )
+    {
+        threads[ i ].join();
+    }
+
+    vector< double > vcs_vector;
+    for ( int i = 0; i < ( int )pos_num; ++i )
+    {
+        vcs_vector.push_back( vcs.data_ptr[ i ] );
+    }
+
+    return vcs_vector;
 }

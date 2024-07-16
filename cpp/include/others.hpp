@@ -29,7 +29,6 @@ class acceleration : public vec3
 public:
     acceleration( double data[ 3 ] ) : vec3( data ){};
     // calculate the components of the force by inner products w.r.t. the related unit vectors
-    double comp_R( double pos[ 3 ] );  // cylindrically radial direction
 };
 
 template < typename Type > class dynamic_array
