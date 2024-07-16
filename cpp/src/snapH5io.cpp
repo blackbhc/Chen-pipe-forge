@@ -6,6 +6,7 @@
 #include "H5Ppublic.h"
 #include "H5Spublic.h"
 #include "H5public.h"
+#include <math.h>
 #include <string>
 #define LONGER_THAN_NumPart_ThisFile 100
 using std::string;
