@@ -11,7 +11,7 @@ target("mprc")
     set_optimize("fastest")
     add_files("src/background_masses_field.cpp", "src/mid_plane_rc.cpp", "src/others.cpp", "src/snapH5io.cpp", "src/rc_ana.cpp")
     add_syslinks("hdf5")
-    add_ldflags("-L/usr/local/lib")
+    add_ldflags("-L/usr/local/lib", "-lpthread")
 
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
