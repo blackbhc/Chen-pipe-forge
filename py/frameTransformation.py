@@ -79,7 +79,7 @@ class frameTransformer:
         # latitudinal velocity
         VThetas = np.sum(velocities * unitThetas, axis=1)
         Rs[index] = Thetas[index] = 0
-        return np.column_stack((Rs, Phis, Thetas, VRs, VPhis, VThetas))
+        return np.column_stack((Rs, Thetas, Phis, VRs, VThetas, VPhis))
 
     def sph2car(self, posvels):
         """
@@ -88,11 +88,11 @@ class frameTransformer:
         Return: the transformed coordinates and velocities.
         """
         Rs = posvels[:, 0]
-        Phis = posvels[:, 1]
-        Thetas = posvels[:, 2]
+        Thetas = posvels[:, 1]
+        Phis = posvels[:, 2]
         VRs = posvels[:, 3]
-        VPhis = posvels[:, 4]
-        VThetas = posvels[:, 5]
+        VThetas = posvels[:, 4]
+        VPhis = posvels[:, 5]
         Xs = np.cos(Phis) * Rs * np.sin(Thetas)
         Ys = np.sin(Phis) * Rs * np.sin(Thetas)
         Zs = np.cos(Thetas) * Rs
