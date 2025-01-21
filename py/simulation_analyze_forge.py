@@ -1,151 +1,710 @@
 import numpy as np
-import h5py
-import warnings
+from matplotlib import pyplot as plt
+from scipy.stats import binned_statistic_2d as bin2d
+from scipy.stats import linregress
+from scipy.interpolate import UnivariateSpline
+
+plt.rcParams.update(
+    {
+        "font.family": "Times New Roman",
+        "font.size": 26,
+        "mathtext.fontset": "cm",
+    }
+)
 
 
-# BUG: currently, onely support models with disk and DM halo
-class galactic_snapshot:
-    def __init__(self, filename, attr_dict):
-        """
-        filename: string for the path of the snapshot file.
-        attr_dict: dictionary for the attributes of the snapshot file, see below.
+class snapshot_utils(object):
+    """
+    My utils used to analyze a snapshot.
+    """
 
-        key-value pairs of the attr_dict:
-        "type": string for simulation type, only support gadget4 at present.
-        "disk": list or list-like, particle type ids for the disk(s) particles.
-        "halo": as "disk" but for DM halo(s).
-        "bulge": as "disk" but for bugle.
-        "stellar_halo": as "disk" but for stellar halo(s).
-        """
-        self.filename = filename
-        self.attr_dict = attr_dict
-        self.cal_centered = False
-        self.has_info = False
-        # TODO: try to remove the following direct calls
-        self.disk = {}
-        self.halo = {}
-        self.disk["ids"] = None
-        self.halo["ids"] = None
-        self.comps = (self.disk, self.halo)
-        # set up the components
-        for target in self.attr_dict:
-            self.__setup_ids(target)
-        # read in the 7D infos (position, velocity, mass) of each components
-        self.__read_info()
-
-    def __to_uint_tuple(self, list_like):
-        return tuple(np.array(list_like, dtype=np.uint))
-
-    def __setup_ids(self, target):
-        # only set up the sets when necessary
-        list_like = self.attr_dict[target]
-        tuple_like = self.__to_uint_tuple(list_like)
-        exec(f"self.{target}['ids'] = tuple_like")
-
-    def __read_info(self):
-        file = h5py.File(self.filename, "r")
-        for comp in self.comps:
-            masses = []
-            coordinates = []
-            velocities = []
-            for id in comp["ids"]:
-                coordinates.append(file[f"PartType{id}"]["Coordinates"][...])
-                velocities.append(file[f"PartType{id}"]["Velocities"][...])
-                masses.append(file[f"PartType{id}"]["Masses"][...])
-            comp["masses"] = np.hstack(masses)
-            comp["coordinates"] = np.vstack(coordinates)
-            comp["velocities"] = np.vstack(velocities)
-        file.close()
-        self.has_info = True
-
-    def __ensure_set_disk(self):
-        # ensure the disk components have been specified
-        if not ("disk" in self.attr_dict.keys()):
-            raise ("There is no any component has been set as the disk component(s)!")
-
-    def __ensure_has_info(self):
-        # ensure the simulation data has been loaded
-        if not self.has_info:
-            self.__read_info()
-
-    def __update_center(self):
-        com = self.get_center()
-        self.center = com
-        self.cal_centered = True
-
-    def __ensure_caled_center(self):
-        if not self.cal_centered:
-            self.__update_center()
-
-    def __ensure_everything_ok(self):
-        # the all in one wrapper of the ensure functions
-        self.__ensure_set_disk()
-        self.__ensure_has_info()
-        self.__ensure_caled_center()
-
-    def get_center(self, R_enclose=10, tolerance=0.01, max_iter=25):
-        """
-        Get the galactic center based on the spatial distribution of the disk components.
-
-        Parameters:
-        R_enclose: the enclose radius.
-        tolerance: threshold for convergence.
-        max_iter: int, maximal iteration times.
-
-        Return:
-        com: 1x3 np.array.
-        """
-        # check whether there is disk components
-        self.__ensure_set_disk()
-        # ensure the data has been loaded
-        self.__ensure_has_info()
-        # ensure max_iter>0
-        if max_iter < 1:
-            raise ("Require a positive integer for maximum iteration times.")
-
-        # exclude the possible inf particles
-        index = np.where(
-            np.linalg.norm(self.disk["coordinates"], axis=1, ord=2) < R_enclose * 100
-        )[0]
-        com = np.nanmean(self.disk["coordinates"][index], axis=0)
-
-        for i in range(max_iter):
-            old_one = com * 1.0
-            index = np.where(
-                np.linalg.norm(self.disk["coordinates"] - old_one, axis=1, ord=2) < 10
-            )[0]
-            com = np.nanmean(self.disk["coordinates"][index], axis=0)
-            if np.linalg.norm(com - old_one) <= tolerance:
-                break
-
-        if i == max_iter:
-            warnings.warn("The iteration may not reach a convergence.")
-
-        return com
-
-    def get_A2(self, R_enclose=10):
-        """
-        Calculate the A2 parameter of the disk components inside some enclosed radius
-
-        Parameters:
-        R_enclose: the enclose radius.
-
-        Return:
-        A2: complex
-        """
-        self.__ensure_everything_ok()
-        # extract the particles
-        masses = self.disk["masses"]
-        coordinates = self.disk["coordinates"] - self.center
-
-        index = np.where(
-            np.linalg.norm(coordinates - self.center, axis=1, ord=2) < R_enclose
-        )[0]
-
-        denominator = np.sum(masses[index])
-        phis = np.arctan2(coordinates[:, 1], coordinates[:, 0])
-        numerator = np.sum(masses * np.exp(2j * phis))
-        return numerator / denominator
-
-    def cal_Jacobi_energy():
+    def __init__(self) -> None:
         pass
+
+    def getStableCoM(coordinates, masses=None, iterMaxTimes=25, encloseRadius=10):
+        """
+        Get the center of mass as a 1d len=3 array of an coordinates array, asscoiated with optional masses.
+        """
+        com = np.zeros(3)  # initial value of the center of mass
+        for i in range(iterMaxTimes):
+            old = 1 * com  # back up the old value
+            if np.not_equal(masses, None):  # with mass case
+                index = np.where(
+                    np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
+                )[0]
+                positionXmass = coordinates * np.column_stack(masses, masses, masses)
+                com = np.mean(positionXmass[index], axis=0)  # get the new value
+            else:  # without mass case
+                index = np.where(
+                    np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
+                )[0]
+                com = np.mean(coordinates[index], axis=0)  # get the new value
+            if np.linalg.norm(com - old) < 0.01 * encloseRadius:
+                break
+        return com  # return the value
+
+    def getPrincipleAxes(coordinates, masses):
+        """
+        Get the system's princle axes, which are defined as the eigen vectors of the inertia tensor.
+        """
+        inertiaTensor = np.zeros(shape=(3, 3))
+        rs = np.linalg.norm(coordinates, axis=1, ord=2)
+        xs, ys, zs = (
+            coordinates[:, 0] / rs,
+            coordinates[:, 1] / rs,
+            coordinates[:, 2] / rs,
+        )
+        cross12 = np.sum(masses * xs * ys)
+        cross13 = np.sum(masses * xs * zs)
+        cross23 = np.sum(masses * ys * zs)
+        inertiaTensor[0, 1] = inertiaTensor[1, 0] = cross12
+        inertiaTensor[0, 2] = inertiaTensor[2, 0] = cross13
+        inertiaTensor[1, 2] = inertiaTensor[2, 1] = cross23
+        inertiaTensor[0, 0] = np.sum(masses * (ys**2 + zs**2))
+        inertiaTensor[1, 1] = np.sum(masses * (xs**2 + zs**2))
+        inertiaTensor[2, 2] = np.sum(masses * (xs**2 + ys**2))
+        eigenValues, eigenVectors = np.linalg.eig(inertiaTensor)
+        sortIDs = np.argsort(
+            np.abs(eigenValues)
+        )  # the id to sort the eigenvalues, which mean the inertia moments relative to the eigen vectors
+        print(eigenValues[sortIDs])
+        return eigenVectors.T[sortIDs].T
+
+    def alignSystem(coordinates, velocities, Renclose=6):
+        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
+        res = linregress(x=coordinates[index, 0], y=coordinates[index, 1])  # linear fit
+        k = res.slope  # slope
+        theta = np.arctan(k)
+        rotation = np.array(
+            [
+                [np.cos(theta), np.sin(theta), 0],
+                [-np.sin(theta), np.cos(theta), 0],
+                [0, 0, 1],
+            ]
+        )
+        coordinates_ = np.matmul(rotation, coordinates.T).T
+        velocities_ = np.matmul(rotation, velocities.T).T
+
+        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
+        res = linregress(
+            x=coordinates_[index, 0], y=coordinates_[index, 2]
+        )  # linear fit
+        k = res.slope  # slope
+        gamma = np.pi - np.arctan(k)
+        rotation = np.array(
+            [
+                [np.cos(gamma), 0, -np.sin(gamma)],
+                [0, 1, 0],
+                [np.sin(gamma), 0, np.cos(gamma)],
+            ]
+        )
+        coordinates_ = np.matmul(rotation, coordinates_.T).T
+        velocities_ = np.matmul(rotation, velocities.T).T
+
+        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
+        res = linregress(
+            x=coordinates_[index, 1], y=coordinates_[index, 2]
+        )  # linear fit
+        k = res.slope  # slope
+        beta = np.arctan(k)
+        rotation = np.array(
+            [
+                [np.cos(beta), np.sin(beta), 0],
+                [-np.sin(beta), np.cos(beta), 0],
+                [0, 0, 1],
+            ]
+        )
+        coordinates_ = np.matmul(rotation, coordinates_.T).T
+        velocities_ = np.matmul(rotation, velocities.T).T
+        return coordinates_, velocities_
+
+    def radial_profile_surface_density(
+        coordinates,
+        masses,
+        Rmin=0.1,
+        Rmax=20,
+        RbinNum=50,
+        PhiBinNum=32,
+    ):
+        """
+        Calculate the radial profile of the azimuthally averaged surface density.
+        """
+        # calculate the radii and azimuthal angles
+        Rs = np.linalg.norm(coordinates[:, :2], axis=1, ord=2)
+        Phis = np.arctan2(coordinates[:, 1], coordinates[:, 0])
+
+        # calculate the total masses in different pixels
+        massSums = bin2d(
+            x=Rs,
+            y=Phis,
+            values=masses,
+            range=[[Rmin, Rmax], [0, np.pi * 2]],
+            bins=[RbinNum, PhiBinNum],
+            statistic="sum",
+        )[0]
+
+        massSums = np.mean(massSums, axis=1)  # azimuthal averages
+
+        rEdges = np.linspace(Rmin, Rmax, RbinNum + 1)  # bin edges of radius
+        rs = (rEdges[1:] + rEdges[:-1]) / 2  # central radii of the bins
+        deltaR = (Rmax - Rmin) / RbinNum  # bin width of radius
+        areas = 2 * np.pi * rs * deltaR / PhiBinNum  # areas of each bin
+        surfaceDensity = massSums / areas
+        return rs, surfaceDensity
+
+    def radial_profile(
+        coordinates,
+        values,
+        Rmin=0.1,
+        Rmax=20,
+        RbinNum=50,
+        PhiBinNum=32,
+    ):
+        """
+        Calculate the radial profile of the azimuthal averages for some quantity.
+        """
+        # calculate the radii and azimuthal angles
+        Rs = np.linalg.norm(coordinates[:, :2], axis=1, ord=2)
+        Phis = np.arctan2(coordinates[:, 1], coordinates[:, 0])
+
+        # calculate the means in different pixels
+        means = bin2d(
+            x=Rs,
+            y=Phis,
+            values=values,
+            range=[[Rmin, Rmax], [0, np.pi * 2]],
+            bins=[RbinNum, PhiBinNum],
+            statistic=np.nanmean,
+        )[0]
+        means = np.nanmean(means, axis=1)  # azimuthal averages
+
+        rEdges = np.linspace(Rmin, Rmax, RbinNum + 1)  # bin edges of radius
+        rs = (rEdges[1:] + rEdges[:-1]) / 2  # central radii of the bins
+        return rs, means
+
+    def view_snapshot(
+        coordinates,
+        size=20,
+        binNum=100,
+        ratio=1,
+        vmin=None,
+        vmax=5,
+        tickNum1=9,
+        tickNum2=9,
+        interpolation="none",
+        colorbarLabel="",
+        showContour=True,
+        contourLevels=9,
+        showFig=False,
+        saveToDir="",
+        t=-1,
+        Rbar=-1,
+    ):
+        """
+        Plot the image of a snapshot.
+        """
+        # define the parameters of the figure
+        basic = 6
+        wCbar = 0.1
+        w = basic
+        hFaceOn = basic
+        hEdgeOn = basic * ratio
+        leftMargin = 1.5
+        rightMargin = 1.7
+        lowerMargin = 1
+        upperMargin = 0.5
+        W = w + hEdgeOn + leftMargin + rightMargin
+        H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
+        fig = plt.figure(figsize=(W, H))
+        axFace = fig.add_axes(
+            [leftMargin / W, (lowerMargin + hEdgeOn) / H, w / W, hFaceOn / H]
+        )
+        axLower = fig.add_axes([leftMargin / W, lowerMargin / H, w / W, hEdgeOn / H])
+        axRighter = fig.add_axes(
+            [
+                (leftMargin + w) / W,
+                (lowerMargin + hEdgeOn) / H,
+                hEdgeOn / W,
+                hFaceOn / H,
+            ]
+        )
+        axCbar = fig.add_axes(
+            [
+                (leftMargin + w + hEdgeOn + 0.25 * rightMargin) / W,
+                lowerMargin / H,
+                wCbar / W,
+                (hFaceOn + hEdgeOn) / H,
+            ]
+        )
+
+        # functions that transforms the physical value to the pixel values
+        def phy2pixel_x(data):
+            return (data - -size) / (2 * size) * (binNum - 1)
+
+        def phy2pixel_yz(data):
+            return (data - -size * ratio) / (2 * size * ratio) * (binNum * ratio - 1)
+
+        # function to calculate the logarithm of a 2D matrix, which is later used to calculate log(Sigma)
+        def logNormMat(matrix):
+            mat = 1 * matrix
+            index = np.where(mat < 1)
+            mat[index] = 1
+            mat = np.log10(mat)
+            mat[index] = None
+            return mat
+
+        # x-y image
+        imageXY = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 0],
+            values=coordinates[:, 0],
+            range=[[-size, size], [-size, size]],
+            bins=binNum,
+            statistic="count",
+        )[0]
+        imageXY = logNormMat(imageXY)
+        axFace.imshow(
+            imageXY,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # x-z image
+        imageXZ = bin2d(
+            x=coordinates[:, 2],
+            y=coordinates[:, 0],
+            values=coordinates[:, 0],
+            range=[[-size * ratio, size * ratio], [-size, size]],
+            bins=[int(binNum * ratio), binNum],
+            statistic="count",
+        )[0]
+        imageXZ = logNormMat(imageXZ)
+        axLower.imshow(
+            imageXZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # y-z image
+        imageYZ = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 2],
+            values=coordinates[:, 0],
+            range=[[-size, size], [-size * ratio, size * ratio]],
+            bins=[binNum, int(binNum * ratio)],
+            statistic="count",
+        )[0]
+        imageYZ = logNormMat(imageYZ)
+        im = axRighter.imshow(
+            imageYZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # plot the iso-density contours
+        if showContour:
+            contourX, contourY = np.meshgrid(
+                np.arange(0, imageXY.shape[0]), np.arange(0, imageXY.shape[1])
+            )
+            axFace.contour(
+                contourX,
+                contourY,
+                imageXY,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            contourZ, contourY = np.meshgrid(
+                np.arange(0, imageYZ.shape[1]), np.arange(0, imageYZ.shape[0])
+            )
+            axRighter.contour(
+                contourZ,
+                contourY,
+                imageYZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            contourX, contourZ = np.meshgrid(
+                np.arange(0, imageXZ.shape[1]), np.arange(0, imageXZ.shape[0])
+            )
+            axLower.contour(
+                contourX,
+                contourZ,
+                imageXZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+
+        # calculate the ticks
+        ticks1 = np.around(np.linspace(-size, size, tickNum1), 1)
+        ticks2 = np.around(np.linspace(-size * ratio, size * ratio, tickNum2), 1)
+        # setup the ticks
+        axFace.set_xticks(phy2pixel_x(ticks1), [])
+        axFace.set_yticks(phy2pixel_x(ticks1[1:]), ticks1[1:])
+        axLower.set_xticks(phy2pixel_x(ticks1), ticks1)
+        axLower.set_yticks(phy2pixel_yz(ticks2), ticks2)
+        axRighter.set_xticks(phy2pixel_yz(ticks2[1:]), ticks2[1:])
+        axRighter.set_yticks(phy2pixel_x(ticks1), [])
+        # set up the labels of axes
+        axFace.set_ylabel(r"$Y$ [kpc]")
+        axFace.set_xlabel(r"$X$ [kpc]")
+        axLower.set_xlabel(r"$X$ [kpc]")
+        axLower.set_ylabel(r"$Z$ [kpc]")
+        axRighter.set_xlabel(r"$Z$ [kpc]")
+
+        # show the time of the snapshot
+        if t >= 0:
+            axLower.text(
+                phy2pixel_x(1.5 * size),
+                phy2pixel_yz(0),
+                f"t={t:.2f} Gyr",
+            )
+        # plot the colorbar
+        plt.colorbar(mappable=im, cax=axCbar, label=colorbarLabel)
+
+        # plot a circle for Rbar
+        if Rbar > 0:
+            thetas = np.linspace(0, np.pi * 2, 72)
+            plotXs = Rbar * np.cos(thetas)
+            plotYs = Rbar * np.sin(thetas)
+            axFace.plot(phy2pixel_x(plotXs), phy2pixel_x(plotYs), "r-")
+
+        # save or show the figure if necessary
+        if saveToDir != "":
+            plt.savefig(saveToDir)
+        if showFig:
+            plt.show()
+        plt.close(fig)
+
+    def view_with_values(
+        coordinates,
+        values,
+        statistic,
+        size=20,
+        binNum=100,
+        ratio=1,
+        vmin=None,
+        vmax=5,
+        tickNum1=9,
+        tickNum2=9,
+        interpolation="none",
+        colorbarLabel="",
+        showContour=True,
+        contourLevels=9,
+        showFig=False,
+        saveToDir="",
+        t=-1,
+    ):
+        """
+        Plot the image of a snapshot, color coded by some value.
+        """
+        # define the parameters of the figure
+        basic = 6
+        wCbar = 0.1
+        w = basic
+        hFaceOn = basic
+        hEdgeOn = basic * ratio
+        leftMargin = 1.5
+        rightMargin = 1.7
+        lowerMargin = 1
+        upperMargin = 0.5
+        W = w + hEdgeOn + leftMargin + rightMargin
+        H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
+        fig = plt.figure(figsize=(W, H))
+        axFace = fig.add_axes(
+            [leftMargin / W, (lowerMargin + hEdgeOn) / H, w / W, hFaceOn / H]
+        )
+        axLower = fig.add_axes([leftMargin / W, lowerMargin / H, w / W, hEdgeOn / H])
+        axRighter = fig.add_axes(
+            [
+                (leftMargin + w) / W,
+                (lowerMargin + hEdgeOn) / H,
+                hEdgeOn / W,
+                hFaceOn / H,
+            ]
+        )
+        axCbar = fig.add_axes(
+            [
+                (leftMargin + w + hEdgeOn + 0.25 * rightMargin) / W,
+                lowerMargin / H,
+                wCbar / W,
+                (hFaceOn + hEdgeOn) / H,
+            ]
+        )
+
+        # functions that transforms the physical value to the pixel values
+        def phy2pixel_x(data):
+            return (data - -size) / (2 * size) * (binNum - 1)
+
+        def phy2pixel_yz(data):
+            return (data - -size * ratio) / (2 * size * ratio) * (binNum * ratio - 1)
+
+        # x-y image
+        imageXY = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 0],
+            values=values,
+            range=[[-size, size], [-size, size]],
+            bins=binNum,
+            statistic=statistic,
+        )[0]
+        axFace.imshow(
+            imageXY,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # x-z image
+        imageXZ = bin2d(
+            x=coordinates[:, 2],
+            y=coordinates[:, 0],
+            values=values,
+            range=[[-size * ratio, size * ratio], [-size, size]],
+            bins=[int(binNum * ratio), binNum],
+            statistic=statistic,
+        )[0]
+        axLower.imshow(
+            imageXZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # y-z image
+        imageYZ = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 2],
+            values=values,
+            range=[[-size, size], [-size * ratio, size * ratio]],
+            bins=[binNum, int(binNum * ratio)],
+            statistic=statistic,
+        )[0]
+        im = axRighter.imshow(
+            imageYZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap="jet",
+            interpolation=interpolation,
+        )
+
+        # plot the iso-density contours
+        if showContour:
+            # function to calculate the logarithm of a 2D matrix, which is later used to calculate log(Sigma)
+            def logNormMat(matrix):
+                mat = 1 * matrix
+                index = np.where(mat < 1)
+                mat[index] = 1
+                mat = np.log10(mat)
+                mat[index] = None
+                return mat
+
+            # density X-Y
+            imageXY = bin2d(
+                x=coordinates[:, 1],
+                y=coordinates[:, 0],
+                values=coordinates[:, 0],
+                range=[[-size, size], [-size, size]],
+                bins=binNum,
+                statistic="count",
+            )[0]
+            imageXY = logNormMat(imageXY)
+            contourX, contourY = np.meshgrid(
+                np.arange(0, imageXY.shape[0]), np.arange(0, imageXY.shape[1])
+            )
+            axFace.contour(
+                contourX,
+                contourY,
+                imageXY,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            # X-Z image
+            imageXZ = bin2d(
+                x=coordinates[:, 2],
+                y=coordinates[:, 0],
+                values=coordinates[:, 0],
+                range=[[-size * ratio, size * ratio], [-size, size]],
+                bins=[int(binNum * ratio), binNum],
+                statistic="count",
+            )[0]
+            imageXZ = logNormMat(imageXZ)
+            axLower.imshow(
+                imageXZ,
+                origin="lower",
+                vmin=vmin,
+                vmax=vmax,
+                cmap="jet",
+                interpolation="none",
+            )
+            contourZ, contourY = np.meshgrid(
+                np.arange(0, imageYZ.shape[1]), np.arange(0, imageYZ.shape[0])
+            )
+            axRighter.contour(
+                contourZ,
+                contourY,
+                imageYZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            # Y-Z image
+            imageYZ = bin2d(
+                x=coordinates[:, 1],
+                y=coordinates[:, 2],
+                values=coordinates[:, 0],
+                range=[[-size, size], [-size * ratio, size * ratio]],
+                bins=[binNum, int(binNum * ratio)],
+                statistic="count",
+            )[0]
+            imageYZ = logNormMat(imageYZ)
+            im = axRighter.imshow(
+                imageYZ,
+                origin="lower",
+                vmin=vmin,
+                vmax=vmax,
+                cmap="jet",
+                interpolation="none",
+            )
+            contourX, contourZ = np.meshgrid(
+                np.arange(0, imageXZ.shape[1]), np.arange(0, imageXZ.shape[0])
+            )
+            axLower.contour(
+                contourX,
+                contourZ,
+                imageXZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+
+        # calculate the ticks
+        ticks1 = np.around(np.linspace(-size, size, tickNum1), 1)
+        ticks2 = np.around(np.linspace(-size * ratio, size * ratio, tickNum2), 1)
+        # setup the ticks
+        axFace.set_xticks(phy2pixel_x(ticks1), [])
+        axFace.set_yticks(phy2pixel_x(ticks1[1:]), ticks1[1:])
+        axLower.set_xticks(phy2pixel_x(ticks1), ticks1)
+        axLower.set_yticks(phy2pixel_yz(ticks2), ticks2)
+        axRighter.set_xticks(phy2pixel_yz(ticks2[1:]), ticks2[1:])
+        axRighter.set_yticks(phy2pixel_x(ticks1), [])
+        # set up the labels of axes
+        axFace.set_ylabel(r"$Y$ [kpc]")
+        axFace.set_xlabel(r"$X$ [kpc]")
+        axLower.set_xlabel(r"$X$ [kpc]")
+        axLower.set_ylabel(r"$Z$ [kpc]")
+        axRighter.set_xlabel(r"$Z$ [kpc]")
+
+        # show the time of the snapshot
+        if t >= 0:
+            axLower.text(
+                phy2pixel_x(1.5 * size),
+                phy2pixel_yz(0),
+                f"t={t:.2f} Gyr",
+            )
+        # plot the colorbar
+        plt.colorbar(mappable=im, cax=axCbar, label=colorbarLabel)
+
+        # save or show the figure if necessary
+        if saveToDir != "":
+            plt.savefig(saveToDir)
+        if showFig:
+            plt.show()
+        plt.close(fig)
+
+    def A2(phis, masses=[], normalize=True):
+        """
+        Calculate the amplitude of the m=2 mode.
+        """
+        exponents = np.exp(2j * phis)
+
+        if len(masses) == 0:
+            A0 = len(phis)
+            A2 = np.sum(exponents)
+        else:
+            A0 = np.sum(masses)
+            A2 = np.sum(masses * exponents)
+
+        if normalize:
+            return np.abs(A2 / A0)
+        else:
+            return np.abs(A2)
+
+    def m2phase(phis, masses=[]):
+        """
+        Calculate the phase of the m=2 mode.
+        """
+        exponents = np.exp(2j * phis)
+
+        if len(masses) == 0:
+            A2 = np.sum(exponents)
+        else:
+            A2 = np.sum(masses * exponents)
+
+        return np.angle(A2) / 2
+
+    def A2profile(
+        self, phis, rs, masses=[], Rmin=0.1, Rmax=20, RbinNum=40, normalize=True
+    ):
+        """
+        Calculate the radial profile of the m=2 amplitudes.
+        """
+        RbinEdges = np.linspace(Rmin, Rmax, RbinNum + 1)
+        A2s = []
+        for i in range(RbinNum):
+            index = np.where((rs >= RbinEdges[i]) & (rs < RbinEdges[i + 1]))[0]
+            A2s.append(self.A2(phis=phis[index], masses=masses, normalize=normalize))
+        return np.array(A2s)
+
+    def RbarThreshold(
+        self, phis, rs, masses=[], Rmin=0.01, Rmax=20, RbinNum=40, threshold=1
+    ):
+        """
+        Calculate the bar radius that A2 reach some threshold, 1 for max.
+        """
+        # calculate the A2 profile
+        profile = self.A2profile(
+            phis=phis, rs=rs, masses=masses, Rmin=Rmin, Rmax=Rmax, RbinNum=RbinNum
+        )
+        Rlocs = np.linspace(Rmin, Rmax, RbinNum + 1)
+        Rlocs = (Rlocs[1:] + Rlocs[:-1]) / 2
+        smoothKernel = UnivariateSpline(x=Rlocs, y=profile)
+        finerRs = np.linspace(Rmin, Rmax, 5 * RbinNum)  # finer radial bins
+        smoothedProfiles = smoothKernel(finerRs)  # smoothed A2 at the finer bins
+        maxID = np.argmax(smoothedProfiles)  # location of the maximal A2
+        # critical values of A2
+        Max = smoothedProfiles[maxID]
+        outerMin = np.min(smoothedProfiles[maxID:])
+        outerRange = Max - outerMin  # range
+        thresholdA2 = outerMin + outerRange * threshold  # the effective threshold
+        locID = np.where(smoothedProfiles[maxID:] <= thresholdA2)[0][0]
+        return finerRs[maxID:][locID]
