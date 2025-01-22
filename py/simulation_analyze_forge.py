@@ -28,7 +28,7 @@ class snapshot_utils(object):
         com = np.zeros(3)  # initial value of the center of mass
         for i in range(iterMaxTimes):
             old = 1 * com  # back up the old value
-            if np.is_equal(type(masses), type(np.zeros(1))):  # with mass case
+            if type(masses) is type(np.zeros(1)):  # with mass case
                 index = np.where(
                     np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
                 )[0]
