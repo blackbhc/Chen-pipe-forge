@@ -32,7 +32,10 @@ class snapshot_utils(object):
                 np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
             )[0]
             com = np.mean(coordinates[index], axis=0)  # get the new value
-            if np.linalg.norm(com - old) < 0.01 * encloseRadius:
+            err = np.linalg.norm(com - old)  # error distance
+            if (
+                err < 0.01 * encloseRadius and err < 0.1
+            ):  # error < relative value and a absolute value
                 break
         return com  # return the value
 
