@@ -21,7 +21,7 @@ class snapshot_utils(object):
     def __init__(self) -> None:
         pass
 
-    def getStableCoM(coordinates, masses=None, iterMaxTimes=25, encloseRadius=10):
+    def getStableCoM(self, coordinates, masses=None, iterMaxTimes=25, encloseRadius=10):
         """
         Get the center of mass as a 1d len=3 array of an coordinates array, asscoiated with optional masses.
         """
@@ -43,7 +43,7 @@ class snapshot_utils(object):
                 break
         return com  # return the value
 
-    def getPrincipleAxes(coordinates, masses):
+    def getPrincipleAxes(self, coordinates, masses):
         """
         Get the system's princle axes, which are defined as the eigen vectors of the inertia tensor.
         """
@@ -70,7 +70,7 @@ class snapshot_utils(object):
         print(eigenValues[sortIDs])
         return eigenVectors.T[sortIDs].T
 
-    def alignSystem(coordinates, velocities, Renclose=6):
+    def alignSystem(self, coordinates, velocities, Renclose=6):
         index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
         res = linregress(x=coordinates[index, 0], y=coordinates[index, 1])  # linear fit
         k = res.slope  # slope
@@ -119,6 +119,7 @@ class snapshot_utils(object):
         return coordinates_, velocities_
 
     def radial_profile_surface_density(
+        self,
         coordinates,
         masses,
         Rmin=0.1,
@@ -153,6 +154,7 @@ class snapshot_utils(object):
         return rs, surfaceDensity
 
     def radial_profile(
+        self,
         coordinates,
         values,
         Rmin=0.1,
@@ -183,6 +185,7 @@ class snapshot_utils(object):
         return rs, means
 
     def view_snapshot(
+        self,
         coordinates,
         size=20,
         binNum=100,
@@ -394,6 +397,7 @@ class snapshot_utils(object):
         plt.close(fig)
 
     def view_with_values(
+        self,
         coordinates,
         values,
         statistic,
@@ -641,7 +645,7 @@ class snapshot_utils(object):
             plt.show()
         plt.close(fig)
 
-    def A2(phis, masses=[], normalize=True):
+    def A2(self, phis, masses=[], normalize=True):
         """
         Calculate the amplitude of the m=2 mode.
         """
