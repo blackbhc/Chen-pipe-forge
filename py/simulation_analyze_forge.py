@@ -21,7 +21,7 @@ class snapshot_utils(object):
     def __init__(self) -> None:
         pass
 
-    def getStableCoM(self, coordinates, iterMaxTimes=25, encloseRadius=100):
+    def getStableCenter(self, coordinates, iterMaxTimes=25, encloseRadius=100):
         """
         Get the center of mass as a 1d len=3 array of an coordinates array, asscoiated with optional masses.
         """
