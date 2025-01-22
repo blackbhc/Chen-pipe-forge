@@ -21,24 +21,17 @@ class snapshot_utils(object):
     def __init__(self) -> None:
         pass
 
-    def getStableCoM(self, coordinates, masses=None, iterMaxTimes=25, encloseRadius=10):
+    def getStableCoM(self, coordinates, iterMaxTimes=25, encloseRadius=100):
         """
         Get the center of mass as a 1d len=3 array of an coordinates array, asscoiated with optional masses.
         """
         com = np.zeros(3)  # initial value of the center of mass
         for i in range(iterMaxTimes):
             old = 1 * com  # back up the old value
-            if type(masses) is type(np.zeros(1)):  # with mass case
-                index = np.where(
-                    np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
-                )[0]
-                positionXmass = coordinates * np.column_stack(masses, masses, masses)
-                com = np.mean(positionXmass[index], axis=0)  # get the new value
-            else:  # without mass case
-                index = np.where(
-                    np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
-                )[0]
-                com = np.mean(coordinates[index], axis=0)  # get the new value
+            index = np.where(
+                np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
+            )[0]
+            com = np.mean(coordinates[index], axis=0)  # get the new value
             if np.linalg.norm(com - old) < 0.01 * encloseRadius:
                 break
         return com  # return the value
