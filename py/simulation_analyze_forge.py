@@ -60,7 +60,6 @@ class snapshot_utils(object):
         sortIDs = np.argsort(
             np.abs(eigenValues)
         )  # the id to sort the eigenvalues, which mean the inertia moments relative to the eigen vectors
-        print(eigenValues[sortIDs])
         return eigenVectors.T[sortIDs].T
 
     def alignSystem(self, coordinates, velocities, Renclose=6):
