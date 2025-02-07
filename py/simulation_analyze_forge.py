@@ -65,51 +65,30 @@ class snapshot_utils(object):
         )  # the id to sort the eigenvalues, which mean the inertia moments relative to the eigen vectors
         return eigenVectors.T[sortIDs].T
 
-    def alignSystem(self, coordinates, velocities, Renclose=6):
-        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
-        res = linregress(x=coordinates[index, 0], y=coordinates[index, 1])  # linear fit
-        k = res.slope  # slope
-        theta = np.arctan(k)
-        rotation = np.array(
-            [
-                [np.cos(theta), np.sin(theta), 0],
-                [-np.sin(theta), np.cos(theta), 0],
-                [0, 0, 1],
-            ]
-        )
+    def alignDisk(self, coordinates, velocities, masses):
+        """
+        Align the disk plane to the Oxy plane, through aligning the total angular to z axis.
+        """
+        linearMoment = (
+            np.column_stack((masses, masses, masses)) * velocities
+        )  # linear moments
+        Leach = np.cross(
+            coordinates, linearMoment, axis=1
+        )  # angular moment of each particle
+        Ltot = np.sum(Leach, axis=0)  # total angular moment
+
+        newZ = Ltot / np.linalg.norm(Ltot)  # new z axis
+
+        # new y axis: the normal vector for the intersection line between the new Oxy plane and old x=0 plane
+        tmp = -newZ[1] / newZ[2]  # the z-comp of the new y axis
+        newY = np.array([0, 1, tmp])  # new y axis
+        newY = newY / np.linalg.norm(newY)  # normalization
+
+        newX = np.cross(newY, newZ)  # new x axis by cross product
+        newX = newX / np.linalg.norm(newX)  # normalization
+
+        rotation = np.column_stack((newX, newY, newZ)).T
         coordinates_ = np.matmul(rotation, coordinates.T).T
-        velocities_ = np.matmul(rotation, velocities.T).T
-
-        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
-        res = linregress(
-            x=coordinates_[index, 0], y=coordinates_[index, 2]
-        )  # linear fit
-        k = res.slope  # slope
-        gamma = np.pi - np.arctan(k)
-        rotation = np.array(
-            [
-                [np.cos(gamma), 0, -np.sin(gamma)],
-                [0, 1, 0],
-                [np.sin(gamma), 0, np.cos(gamma)],
-            ]
-        )
-        coordinates_ = np.matmul(rotation, coordinates_.T).T
-        velocities_ = np.matmul(rotation, velocities.T).T
-
-        index = np.where(np.linalg.norm(coordinates, ord=2, axis=1) < Renclose)[0]
-        res = linregress(
-            x=coordinates_[index, 1], y=coordinates_[index, 2]
-        )  # linear fit
-        k = res.slope  # slope
-        beta = np.arctan(k)
-        rotation = np.array(
-            [
-                [np.cos(beta), np.sin(beta), 0],
-                [-np.sin(beta), np.cos(beta), 0],
-                [0, 0, 1],
-            ]
-        )
-        coordinates_ = np.matmul(rotation, coordinates_.T).T
         velocities_ = np.matmul(rotation, velocities.T).T
         return coordinates_, velocities_
 
