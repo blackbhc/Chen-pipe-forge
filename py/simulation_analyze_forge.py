@@ -1,8 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import binned_statistic_2d as bin2d
-from scipy.stats import linregress
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 plt.rcParams.update(
     {
@@ -186,7 +185,7 @@ class snapshot_utils(object):
         w = basic
         hFaceOn = basic
         hEdgeOn = basic * ratio
-        leftMargin = 1.5
+        leftMargin = 2
         rightMargin = 1.7
         lowerMargin = 1
         upperMargin = 0.5
@@ -675,14 +674,16 @@ class snapshot_utils(object):
         )
         Rlocs = np.linspace(Rmin, Rmax, RbinNum + 1)
         Rlocs = (Rlocs[1:] + Rlocs[:-1]) / 2
-        smoothKernel = UnivariateSpline(x=Rlocs, y=profile)
-        finerRs = np.linspace(Rmin, Rmax, 5 * RbinNum)  # finer radial bins
-        smoothedProfiles = smoothKernel(finerRs)  # smoothed A2 at the finer bins
-        maxID = np.argmax(smoothedProfiles)  # location of the maximal A2
+        interpolateKernel = interp1d(Rlocs, profile, kind="linear")
+        finerRs = np.linspace(
+            Rlocs.min(), Rlocs.max(), 5 * RbinNum
+        )  # finer radial bins
+        inerpolatedProfile = interpolateKernel(finerRs)  # smoothed A2 at the finer bins
+        maxID = np.argmax(inerpolatedProfile)  # location of the maximal A2
         # critical values of A2
-        Max = smoothedProfiles[maxID]
-        outerMin = np.min(smoothedProfiles[maxID:])
+        Max = inerpolatedProfile[maxID]
+        outerMin = np.min(inerpolatedProfile[maxID:])
         outerRange = Max - outerMin  # range
         thresholdA2 = outerMin + outerRange * threshold  # the effective threshold
-        locID = np.where(smoothedProfiles[maxID:] <= thresholdA2)[0][0]
+        locID = np.where(inerpolatedProfile[maxID:] <= thresholdA2)[0][0]
         return finerRs[maxID:][locID]
