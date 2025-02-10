@@ -175,6 +175,7 @@ class snapshot_utils(object):
         saveToDir="",
         t=-1,
         Rbar=-1,
+        A2=-1,
     ):
         """
         Plot the image of a snapshot.
@@ -346,12 +347,16 @@ class snapshot_utils(object):
         axRighter.set_xlabel(r"$Z$ [kpc]")
 
         # show the time of the snapshot
+        showText = ""
         if t >= 0:
+            showText += f"t={t:.2f} Gyr"
+        if A2 >= 0:
+            showText += f"\nA2={A2:.2f}"
+        if len(showText) > 0:
             axLower.text(
-                phy2pixel_x(1.5 * size),
-                phy2pixel_yz(0),
-                f"t={t:.2f} Gyr",
+                phy2pixel_x(1.5 * size), phy2pixel_yz(0), showText, ma="center"
             )
+        # show the time of the snapshot
         # plot the colorbar
         plt.colorbar(mappable=im, cax=axCbar, label=colorbarLabel)
 
