@@ -80,7 +80,7 @@ vector< acceleration > masses_field::accs_at( double* positions, unsigned int po
     unsigned int used_thread = ( unsigned int )( std::thread::hardware_concurrency() / 4 );
     // at least MIN_THREAD threads
     used_thread                       = used_thread >= MIN_THREAD ? used_thread : MIN_THREAD;
-    used_thread                       = used_thread >= pos_num ? used_thread : pos_num;
+    used_thread                       = used_thread <= pos_num ? used_thread : pos_num;
     unsigned int basic_num_per_thread = pos_num / used_thread;
     unsigned int extra_num            = pos_num % used_thread;
     // virtual container of the position ids
