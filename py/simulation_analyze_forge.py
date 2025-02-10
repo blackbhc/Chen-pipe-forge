@@ -64,7 +64,9 @@ class snapshot_utils(object):
         )  # the id to sort the eigenvalues, which mean the inertia moments relative to the eigen vectors
         return eigenVectors.T[sortIDs].T
 
-    def alignDisk(self, coordinates, velocities, masses):
+    def alignDisk(
+        self, coordinates, velocities, masses, haloCoordinates=[], haloVelocities=[]
+    ):
         """
         Align the disk plane to the Oxy plane, through aligning the total angular to z axis.
         """
@@ -87,9 +89,18 @@ class snapshot_utils(object):
         newX = newX / np.linalg.norm(newX)  # normalization
 
         rotation = np.column_stack((newX, newY, newZ)).T
-        coordinates_ = np.matmul(rotation, coordinates.T).T
-        velocities_ = np.matmul(rotation, velocities.T).T
-        return coordinates_, velocities_
+
+        if len(haloCoordinates) == 0:
+            coordinates_ = np.matmul(rotation, coordinates.T).T
+            velocities_ = np.matmul(rotation, velocities.T).T
+            return coordinates_, velocities_
+        else:
+            # if given halo datasets, also rotate them
+            haloCoordinates_ = np.matmul(rotation, haloCoordinates.T).T
+            haloVelocities_ = np.matmul(rotation, haloVelocities.T).T
+            coordinates_ = np.matmul(rotation, coordinates.T).T
+            velocities_ = np.matmul(rotation, velocities.T).T
+            return coordinates_, velocities_, haloCoordinates_, haloVelocities_
 
     def radial_profile_surface_density(
         self,
