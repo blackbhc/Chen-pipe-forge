@@ -663,7 +663,7 @@ class snapshot_utils(object):
         else:
             return np.abs(A2)
 
-    def m2phase(phis, masses=[]):
+    def m2phase(self, phis, masses=[]):
         """
         Calculate the phase of the m=2 mode.
         """
