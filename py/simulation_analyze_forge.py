@@ -80,7 +80,7 @@ class snapshot_utils(object):
             indexes = list(range(0, len(masses), 1))
         else:
             indexes = np.where(
-                np.linalg.norm(coordinates, ord=2, axis=0) < encloseRadius
+                np.linalg.norm(coordinates, ord=2, axis=1) < encloseRadius
             )[0]
         linearMoment = (
             np.column_stack((masses, masses, masses)) * velocities
