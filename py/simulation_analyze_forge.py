@@ -65,16 +65,28 @@ class snapshot_utils(object):
         return eigenVectors.T[sortIDs].T
 
     def alignDisk(
-        self, coordinates, velocities, masses, haloCoordinates=[], haloVelocities=[]
+        self,
+        coordinates,
+        velocities,
+        masses,
+        haloCoordinates=[],
+        haloVelocities=[],
+        encloseRadius=-1,
     ):
         """
         Align the disk plane to the Oxy plane, through aligning the total angular to z axis.
         """
+        if encloseRadius <= 0:
+            indexes = list(range(0, len(masses), 1))
+        else:
+            indexes = np.where(
+                np.linalg.norm(coordinates, ord=2, axis=0) < encloseRadius
+            )[0]
         linearMoment = (
             np.column_stack((masses, masses, masses)) * velocities
         )  # linear moments
         Leach = np.cross(
-            coordinates, linearMoment, axis=1
+            coordinates[indexes], linearMoment[indexes], axis=1
         )  # angular moment of each particle
         Ltot = np.sum(Leach, axis=0)  # total angular moment
 
