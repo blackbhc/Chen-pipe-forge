@@ -560,14 +560,6 @@ class snapshot_utils(object):
                 statistic="count",
             )[0]
             imageXZ = logNormMat(imageXZ)
-            axLower.imshow(
-                imageXZ,
-                origin="lower",
-                vmin=vmin,
-                vmax=vmax,
-                cmap="jet",
-                interpolation="none",
-            )
             contourZ, contourY = np.meshgrid(
                 np.arange(0, imageYZ.shape[1]), np.arange(0, imageYZ.shape[0])
             )
@@ -591,14 +583,6 @@ class snapshot_utils(object):
                 statistic="count",
             )[0]
             imageYZ = logNormMat(imageYZ)
-            im = axRighter.imshow(
-                imageYZ,
-                origin="lower",
-                vmin=vmin,
-                vmax=vmax,
-                cmap="jet",
-                interpolation="none",
-            )
             contourX, contourZ = np.meshgrid(
                 np.arange(0, imageXZ.shape[1]), np.arange(0, imageXZ.shape[0])
             )
