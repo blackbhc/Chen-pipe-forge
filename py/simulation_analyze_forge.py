@@ -659,7 +659,7 @@ class snapshot_utils(object):
         else:
             return np.abs(A2)
 
-    def Sbuckle(self, phis, Zs, masses=[], normalize=True):
+    def Sbuckling(self, phis, Zs, masses=[], normalize=True):
         """
         Calculate the amplitude of the m=2 mode.
         """
