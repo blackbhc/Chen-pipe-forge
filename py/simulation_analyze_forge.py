@@ -659,6 +659,24 @@ class snapshot_utils(object):
         else:
             return np.abs(A2)
 
+    def Sbuckle(self, phis, Zs, masses=[], normalize=True):
+        """
+        Calculate the amplitude of the m=2 mode.
+        """
+        exponents = np.exp(2j * phis)
+
+        if len(masses) == 0:
+            A0 = len(phis)
+            numerator = np.sum(Zs * exponents)
+        else:
+            A0 = np.sum(masses)
+            numerator2 = np.sum(masses * Zs * exponents)
+
+        if normalize:
+            return np.abs(numerator / A0)
+        else:
+            return np.abs(numerator)
+
     def m2phase(self, phis, masses=[]):
         """
         Calculate the phase of the m=2 mode.
