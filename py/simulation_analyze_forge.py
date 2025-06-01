@@ -749,7 +749,9 @@ class snapshot_utils(object):
         )  # unit azimuthal vector
         Vr = self.inner_product(unit_r, velocities)  # radial velocity
         Vphi = self.inner_product(unit_phi, velocities)  # azimuthal velocity
-        Vtheta = velocities - Vr - Vphi
+        vecVr = np.column_stack((Vr, Vr, Vr)) * unit_r
+        vecVphi = np.column_stack((Vphi, Vphi, Vphi)) * unit_r
+        Vtheta = velocities - vecVr - vecVphi
         oCoordinates = np.column_stack((rs, phi, theta))
         oVeloicties = np.column_stack((Vr, Vphi, Vtheta))
         return oCoordinates, oVeloicties
