@@ -735,7 +735,7 @@ class snapshot_utils(object):
     def car2sph(self, coordinates, velocities):
         """
         Transform the coordinates and velocities from the cartesian coordinates to spherical coordinates.
-        Return: the transformed coordinates and velocities.
+        Return: the transformed coordinates and velocities, all in the (r, phi, theta) order.
         """
         rs = np.linalg.norm(coordinates, axis=1)  # spherical coordinates
         unit_r = coordinates / np.column_stack((rs, rs, rs))  # unit radial vector
@@ -750,8 +750,27 @@ class snapshot_utils(object):
         Vr = self.inner_product(unit_r, velocities)  # radial velocity
         Vphi = self.inner_product(unit_phi, velocities)  # azimuthal velocity
         vecVr = np.column_stack((Vr, Vr, Vr)) * unit_r
-        vecVphi = np.column_stack((Vphi, Vphi, Vphi)) * unit_r
+        vecVphi = np.column_stack((Vphi, Vphi, Vphi)) * unit_phi
         Vtheta = velocities - vecVr - vecVphi
         oCoordinates = np.column_stack((rs, phi, theta))
         oVeloicties = np.column_stack((Vr, Vphi, Vtheta))
+        return oCoordinates, oVeloicties
+
+    def car2cyl(self, coordinates, velocities):
+        """
+        Transform the coordinates and velocities from the cartesian coordinates to spheical coordinates.
+        Return: the transformed coordinates and velocities, all in the (R, phi, z) order.
+        """
+        Rs = np.linalg.norm(coordinates[:, :2], axis=1)  # spherical coordinates
+        unit_R = coordinates / np.column_stack((Rs, Rs, Rs))  # unit radial vector
+        phi = np.atan2(coordinates[:, 1], coordinates[:, 0])  # azimuthal angles
+        unit_phi = np.column_stack(
+            (-np.sin(phi), np.cos(phi), np.zeros(len(phi)))
+        )  # unit azimuthal vector
+        VR = self.inner_product(unit_R, velocities)  # radial velocity
+        Vphi = self.inner_product(unit_phi, velocities)  # azimuthal velocity
+        vecVr = np.column_stack((VR, VR, VR)) * unit_R
+        vecVphi = np.column_stack((Vphi, Vphi, Vphi)) * unit_phi
+        oCoordinates = np.column_stack((Rs, phi, coordinates[:, 2]))
+        oVeloicties = np.column_stack((VR, Vphi, velocities[:, 2]))
         return oCoordinates, oVeloicties
