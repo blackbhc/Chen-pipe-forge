@@ -728,3 +728,28 @@ class snapshot_utils(object):
         thresholdA2 = outerMin + outerRange * threshold  # the effective threshold
         locID = np.where(inerpolatedProfile[maxID:] <= thresholdA2)[0][0]
         return finerRs[maxID:][locID]
+
+    def inner_product(self, v1, v2):
+        return np.sum(v1 * v2, axis=1)
+
+    def car2sph(self, coordinates, velocities):
+        """
+        Transform the coordinates and velocities from the cartesian coordinates to spherical coordinates.
+        Return: the transformed coordinates and velocities.
+        """
+        rs = np.linalg.norm(coordinates, axis=1)  # spherical coordinates
+        unit_r = coordinates / np.column_stack((rs, rs, rs))  # unit radial vector
+        unit_z = np.column_stack(
+            (np.zeros(len(rs)), np.zeros(len(rs)), np.ones(len(rs)))
+        )
+        phi = np.atan2(coordinates[:, 1], coordinates[:, 0])  # azimuthal angles
+        theta = np.arccos(self.inner_product(unit_z, unit_r))
+        unit_phi = np.column_stack(
+            (-np.sin(phi), np.cos(phi), np.zeros(len(phi)))
+        )  # unit azimuthal vector
+        Vr = self.inner_product(unit_r, velocities)  # radial velocity
+        Vphi = self.inner_product(unit_phi, velocities)  # azimuthal velocity
+        Vtheta = velocities - Vr - Vphi
+        oCoordinates = np.column_stack((rs, phi, theta))
+        oVeloicties = np.column_stack((Vr, Vphi, Vtheta))
+        return oCoordinates, oVeloicties
