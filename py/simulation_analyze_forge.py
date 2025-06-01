@@ -773,13 +773,13 @@ class snapshot_utils(object):
         oVeloicties = np.column_stack((VR, Vphi, velocities[:, 2]))
         return oCoordinates, oVeloicties
 
-    def anisotropy(self, VRs, VPhis, VThetas):
+    def anisotropy(self, Vrs, Vphis, Vthetas):
         """
         Calculate the radial anisotropy parameter from the spherical velocities.
         Return: the float for the anisotropy parameter.
         """
-        sigmaR = np.stdnan(VRs)
-        sigmaPhi = np.stdnan(VPhis)
-        sigmaTheta = np.stdnan(VThetas)
+        sigmaR = np.stdnan(Vrs)
+        sigmaPhi = np.stdnan(Vphis)
+        sigmaTheta = np.stdnan(Vthetas)
         beta = 1 - (sigmaTheta**2 + sigmaPhi**2) / (2 * sigmaR**2)
         return beta
