@@ -778,8 +778,8 @@ class snapshot_utils(object):
         Calculate the radial anisotropy parameter from the spherical velocities.
         Return: the float for the anisotropy parameter.
         """
-        sigmaR = np.stdnan(Vrs)
-        sigmaPhi = np.stdnan(Vphis)
-        sigmaTheta = np.stdnan(Vthetas)
+        sigmaR = np.nanstd(Vrs)
+        sigmaPhi = np.nanstd(Vphis)
+        sigmaTheta = np.nanstd(Vthetas)
         beta = 1 - (sigmaTheta**2 + sigmaPhi**2) / (2 * sigmaR**2)
         return beta
