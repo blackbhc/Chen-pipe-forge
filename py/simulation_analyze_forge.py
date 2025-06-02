@@ -704,14 +704,14 @@ class snapshot_utils(object):
         return np.array(A2s), (RbinEdges[1:] + RbinEdges[:-1]) / 2
 
     def RbarThreshold(
-        self, phis, rs, masses=[], Rmin=0.01, Rmax=20, RbinNum=40, threshold=1
+        self, phis, Rs, masses=[], Rmin=0.01, Rmax=20, RbinNum=40, threshold=1
     ):
         """
         Calculate the bar radius that A2 reach some threshold, 1 for max.
         """
         # calculate the A2 profile
         profile = self.A2profile(
-            phis=phis, rs=rs, masses=masses, Rmin=Rmin, Rmax=Rmax, RbinNum=RbinNum
+            phis=phis, Rs=Rs, masses=masses, Rmin=Rmin, Rmax=Rmax, RbinNum=RbinNum
         )[0]
         Rlocs = np.linspace(Rmin, Rmax, RbinNum + 1)
         Rlocs = (Rlocs[1:] + Rlocs[:-1]) / 2
