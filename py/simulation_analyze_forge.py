@@ -691,7 +691,7 @@ class snapshot_utils(object):
         return np.angle(A2) / 2
 
     def A2profile(
-        self, phis, rs, masses=[], Rmin=0.1, Rmax=20, RbinNum=40, normalize=True
+        self, phis, Rs, masses=[], Rmin=0.1, Rmax=20, RbinNum=40, normalize=True
     ):
         """
         Calculate the radial profile of the m=2 amplitudes.
@@ -699,9 +699,9 @@ class snapshot_utils(object):
         RbinEdges = np.linspace(Rmin, Rmax, RbinNum + 1)
         A2s = []
         for i in range(RbinNum):
-            index = np.where((rs >= RbinEdges[i]) & (rs < RbinEdges[i + 1]))[0]
+            index = np.where((Rs >= RbinEdges[i]) & (Rs < RbinEdges[i + 1]))[0]
             A2s.append(self.A2(phis=phis[index], masses=masses, normalize=normalize))
-        return np.array(A2s)
+        return np.array(A2s), (RbinEdges[1:] + RbinEdges[:-1]) / 2
 
     def RbarThreshold(
         self, phis, rs, masses=[], Rmin=0.01, Rmax=20, RbinNum=40, threshold=1
