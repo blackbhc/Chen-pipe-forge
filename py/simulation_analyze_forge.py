@@ -2,6 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import binned_statistic_2d as bin2d
 from scipy.interpolate import interp1d
+from scipy.stats import linregress
 
 plt.rcParams.update(
     {
@@ -783,3 +784,43 @@ class snapshot_utils(object):
         sigmaTheta = np.nanstd(Vthetas)
         beta = 1 - (sigmaTheta**2 + sigmaPhi**2) / (2 * sigmaR**2)
         return beta
+
+    def getRdHz(
+        self,
+        masses,
+        cartesianCoordinates,
+        Rmin=0.1,
+        Rmax=30,
+        RbinNum=60,
+        Zmax=3,
+        ZbinNum=18,
+    ):
+        """
+        Calculate the disk scale length and height.
+        """
+        Rs = np.linalg.norm(cartesianCoordinates[:, :2], axis=1, ord=2)
+        Zs = cartesianCoordinates[:, 2]
+        Zmin = -abs(Zmax)
+        RbinEdges = np.linspace(Rmin, Rmax, RbinNum + 1)
+        ZbinEdges = np.linspace(Zmin, Zmax, ZbinNum + 1)
+        Mtot = bin2d(Rs, Zs, masses, bins=[RbinEdges, ZbinEdges], statistic="sum")[0]
+
+        def bin_center(data):
+            return (data[1:] + data[:-1]) / 2
+
+        # Transform it into \rho(R, z)
+        deltaR = (Rmax - Rmin) / RbinNum
+        deltaZ = (Zmax - Zmin) / ZbinNum
+        Rcenters = bin_center(RbinEdges)
+        Zcenters = bin_center(ZbinEdges)
+        rhos = 1 * Mtot
+        for i in range(rhos.shape[1]):
+            weights = deltaR * deltaZ * np.pi * 2 * Rcenters
+            rhos[:, i] /= weights
+
+        res = linregress(Rcenters, np.log(rhos[:, int(len(Zcenters) / 2)]))
+        Rd = -1 / res.slope
+        res = linregress(np.abs(Zcenters), np.log(rhos[0]))
+        Zd = -1 / res.slope
+
+        return Rd, Zd
