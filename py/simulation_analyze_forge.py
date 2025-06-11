@@ -678,6 +678,18 @@ class snapshot_utils(object):
         else:
             return np.abs(numerator)
 
+    def BPXstrength(self, Zs, masses=[]):
+        """
+        Calculate the BPX strength parameter.
+        """
+        if len(masses) == 0:
+            denominator = len(Zs)
+            numerator = np.sum(Zs**2)
+        else:
+            denominator = np.sum(masses)
+            numerator = np.sum(masses * Zs**2)
+        return numerator / denominator
+
     def m2phase(self, phis, masses=[]):
         """
         Calculate the phase of the m=2 mode.
