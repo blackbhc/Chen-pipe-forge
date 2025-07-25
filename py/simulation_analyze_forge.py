@@ -28,10 +28,8 @@ class snapshot_utils(object):
         com = np.zeros(3)  # initial value of the center of mass
         for i in range(iterMaxTimes):
             old = 1 * com  # back up the old value
-            index = np.where(
-                np.linalg.norm(coordinates - com, axis=1, ord=2) < encloseRadius
-            )[0]
-            com = np.mean(coordinates[index], axis=0)  # get the new value
+            rs = np.linalg.norm(coordinates - com, axis=1, ord=2)
+            com = np.mean(coordinates[rs < encloseRadius], axis=0)  # get the new value
             err = np.linalg.norm(com - old)  # error distance
             if (
                 err < 0.01 * encloseRadius and err < 0.1
