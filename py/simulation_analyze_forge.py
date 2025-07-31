@@ -827,12 +827,12 @@ class snapshot_utils(object):
         for i in range(rhos.shape[1]):
             weights = deltaR * deltaZ * np.pi * 2 * Rcenters
             rhos[:, i] /= weights
-        index = np.where(~np.isnan(rhos[:, int(len(Zcenters) / 2)]))[0]
+        index = np.where(rhos[:, int(len(Zcenters) / 2)] > 0)[0]
         res = linregress(
             Rcenters[index], np.log(rhos[:, int(len(Zcenters) / 2)][index])
         )
         Rd = -1 / res.slope
-        index = np.where(~np.isnan(rhos[0]))[0]
+        index = np.where(rhos[0] > 0)[0]
         res = linregress(np.abs(Zcenters[index]), np.log(rhos[0][index]))
         Zd = -1 / res.slope
 
