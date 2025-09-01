@@ -189,6 +189,7 @@ class snapshot_utils(object):
         vmax=None,
         tickNum1=9,
         tickNum2=9,
+        cmap="jet",
         interpolation="none",
         colorbarLabel="",
         showContour=True,
@@ -267,7 +268,7 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
             interpolation=interpolation,
         )
 
@@ -286,7 +287,7 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
             interpolation=interpolation,
         )
 
@@ -305,7 +306,227 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
+            interpolation=interpolation,
+        )
+
+        # plot the iso-density contours
+        if showContour:
+            contourX, contourY = np.meshgrid(
+                np.arange(0, imageXY.shape[0]), np.arange(0, imageXY.shape[1])
+            )
+            axFace.contour(
+                contourX,
+                contourY,
+                imageXY,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            contourZ, contourY = np.meshgrid(
+                np.arange(0, imageYZ.shape[1]), np.arange(0, imageYZ.shape[0])
+            )
+            axRighter.contour(
+                contourZ,
+                contourY,
+                imageYZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+            contourX, contourZ = np.meshgrid(
+                np.arange(0, imageXZ.shape[1]), np.arange(0, imageXZ.shape[0])
+            )
+            axLower.contour(
+                contourX,
+                contourZ,
+                imageXZ,
+                levels=contourLevels,
+                colors="black",
+                alpha=0.5,
+                linewidths=1,
+                origin="lower",
+            )
+
+        # calculate the ticks
+        ticks1 = np.around(np.linspace(-size, size, tickNum1), 1)
+        ticks2 = np.around(np.linspace(-size * ratio, size * ratio, tickNum2), 1)
+        # setup the ticks
+        axFace.set_xticks(phy2pixel_x(ticks1), [])
+        axFace.set_yticks(phy2pixel_x(ticks1[1:]), ticks1[1:])
+        axLower.set_xticks(phy2pixel_x(ticks1), ticks1)
+        axLower.set_yticks(phy2pixel_yz(ticks2), ticks2)
+        axRighter.set_xticks(phy2pixel_yz(ticks2[1:]), ticks2[1:])
+        axRighter.set_yticks(phy2pixel_x(ticks1), [])
+        # set up the labels of axes
+        axFace.set_ylabel(r"$Y$ [kpc]")
+        axFace.set_xlabel(r"$X$ [kpc]")
+        axLower.set_xlabel(r"$X$ [kpc]")
+        axLower.set_ylabel(r"$Z$ [kpc]")
+        axRighter.set_xlabel(r"$Z$ [kpc]")
+
+        # show the time of the snapshot
+        showText = ""
+        if t >= 0:
+            showText += f"t={t:.2f} Gyr"
+        if A2 >= 0:
+            showText += f"\nA2={A2:.2f}"
+        if len(showText) > 0:
+            axLower.text(
+                phy2pixel_x(1.5 * size), phy2pixel_yz(0), showText, ma="center"
+            )
+        # plot the colorbar
+        plt.colorbar(mappable=im, cax=axCbar, label=colorbarLabel)
+
+        # plot a circle for Rbar
+        if Rbar > 0:
+            thetas = np.linspace(0, np.pi * 2, 72)
+            plotXs = Rbar * np.cos(thetas)
+            plotYs = Rbar * np.sin(thetas)
+            axFace.plot(phy2pixel_x(plotXs), phy2pixel_x(plotYs), "r-")
+
+        # save or show the figure if necessary
+        if saveToDir != "":
+            plt.savefig(saveToDir)
+        if showFig:
+            plt.show()
+        plt.close(fig)
+
+    def view_surface_density(
+        self,
+        coordinates,
+        masses,
+        size=20,
+        binNum=100,
+        ratio=1,
+        vmin=None,
+        vmax=None,
+        tickNum1=9,
+        tickNum2=9,
+        cmap="jet",
+        interpolation="none",
+        colorbarLabel="",
+        showContour=True,
+        contourLevels=9,
+        showFig=False,
+        saveToDir="",
+        t=-1,
+        Rbar=-1,
+        A2=-1,
+    ):
+        """
+        Plot the image of a snapshot.
+        """
+        # define the parameters of the figure
+        basic = 6
+        wCbar = 0.1
+        w = basic
+        hFaceOn = basic
+        hEdgeOn = basic * ratio
+        leftMargin = 2
+        rightMargin = 1.7
+        lowerMargin = 1
+        upperMargin = 0.5
+        W = w + hEdgeOn + leftMargin + rightMargin
+        H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
+        fig = plt.figure(figsize=(W, H))
+        axFace = fig.add_axes(
+            [leftMargin / W, (lowerMargin + hEdgeOn) / H, w / W, hFaceOn / H]
+        )
+        axLower = fig.add_axes([leftMargin / W, lowerMargin / H, w / W, hEdgeOn / H])
+        axRighter = fig.add_axes(
+            [
+                (leftMargin + w) / W,
+                (lowerMargin + hEdgeOn) / H,
+                hEdgeOn / W,
+                hFaceOn / H,
+            ]
+        )
+        axCbar = fig.add_axes(
+            [
+                (leftMargin + w + hEdgeOn + 0.25 * rightMargin) / W,
+                lowerMargin / H,
+                wCbar / W,
+                (hFaceOn + hEdgeOn) / H,
+            ]
+        )
+
+        # functions that transforms the physical value to the pixel values
+        def phy2pixel_x(data):
+            return (data - -size) / (2 * size) * (binNum - 1)
+
+        def phy2pixel_yz(data):
+            return (data - -size * ratio) / (2 * size * ratio) * (binNum * ratio - 1)
+
+        # function to calculate the logarithm of a 2D matrix, which is later used to calculate log(Sigma)
+        def logNormMat(matrix):
+            mat = 1 * matrix
+            index = np.where(mat <= 0)
+            mat[index] = 1
+            mat = np.log10(mat)
+            mat[index] = None
+            return mat
+
+        area = ((size - -size) / binNum) ** 2
+
+        # x-y image
+        imageXY = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 0],
+            values=masses,
+            range=[[-size, size], [-size, size]],
+            bins=binNum,
+            statistic="sum",
+        )[0]
+        imageXY = logNormMat(imageXY / area)
+        axFace.imshow(
+            imageXY,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            interpolation=interpolation,
+        )
+
+        # x-z image
+        imageXZ = bin2d(
+            x=coordinates[:, 2],
+            y=coordinates[:, 0],
+            values=masses,
+            range=[[-size * ratio, size * ratio], [-size, size]],
+            bins=[int(binNum * ratio), binNum],
+            statistic="sum",
+        )[0]
+        imageXZ = logNormMat(imageXZ / area)
+        axLower.imshow(
+            imageXZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            interpolation=interpolation,
+        )
+
+        # y-z image
+        imageYZ = bin2d(
+            x=coordinates[:, 1],
+            y=coordinates[:, 2],
+            values=masses,
+            range=[[-size, size], [-size * ratio, size * ratio]],
+            bins=[binNum, int(binNum * ratio)],
+            statistic="sum",
+        )[0]
+        imageYZ = logNormMat(imageYZ / area)
+        im = axRighter.imshow(
+            imageYZ,
+            origin="lower",
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
             interpolation=interpolation,
         )
 
@@ -407,6 +628,7 @@ class snapshot_utils(object):
         vmax=None,
         tickNum1=9,
         tickNum2=9,
+        cmap="jet",
         interpolation="none",
         colorbarLabel="",
         showContour=True,
@@ -475,7 +697,7 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
             interpolation=interpolation,
         )
 
@@ -493,7 +715,7 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
             interpolation=interpolation,
         )
 
@@ -511,7 +733,7 @@ class snapshot_utils(object):
             origin="lower",
             vmin=vmin,
             vmax=vmax,
-            cmap="jet",
+            cmap=cmap,
             interpolation=interpolation,
         )
 
