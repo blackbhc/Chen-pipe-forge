@@ -920,8 +920,20 @@ class snapshot_utils(object):
             A2 = np.sum(exponents)
         else:
             A2 = np.sum(masses * exponents)
-
         return np.angle(A2) / 2
+
+    def monotonize_bar_angle(self, bar_angles, threshold=np.deg2rad(90)):
+        """
+        Monotonization of the bar angles (m=2 phase) based on its global increasing or decreasing trend.
+        """
+        # make sure that the bar angles are calculated in rads as the common fassion
+        assert bar_angles.min() >= -np.pi / 2 and bar_angles.max() <= np.pi / 2
+        sign = np.sign(np.mean(np.sign(bar_angles[1:] - bar_angles[:-1])))
+        plain = bar_angles * 1  # avoid the overlap of values
+        for i in range(len(bar_angles) - 1):
+            if (plain[i + 1] - plain[i]) / sign <= -threshold:
+                plain[i + 1 :] += np.pi * sign
+        return plain
 
     def A2profile(
         self, phis, Rs, masses=[], Rmin=0.1, Rmax=20, RbinNum=40, normalize=True
