@@ -400,13 +400,13 @@ class snapshot_utils(object):
         self,
         coordinates,
         cmaps=["bone", "bone", "copper"],
-        tickNum2=9,
         interpolation="none",
         size=20,
         binNum=100,
         vmin=None,
         vmax=None,
-        tickNum1=9,
+        tickNum_x=9,
+        tickNum_y=7,
         showContours=[True, False, False],
         contourLevels=9,
         showFig=False,
@@ -517,9 +517,8 @@ class snapshot_utils(object):
                     origin="lower",
                 )
 
-            # calculate the ticks
-            ticks = np.around(np.linspace(-size, size, tickNum1), 1)
-            # setup the ticks
+            # setup the x ticks
+            ticks = np.around(np.linspace(-size, size, tickNum_x), 1)
             ax.set_xticks(phy2pixel(ticks[:-1]), ticks[:-1])
             # set up the labels of axes
             ax.set_xlabel(r"$X$ [kpc]")
@@ -543,10 +542,12 @@ class snapshot_utils(object):
                 plotYs = Rbar * np.sin(thetas)
                 ax.plot(phy2pixel(plotXs), phy2pixel(plotYs), "r-")
 
-        axes[1, 0].set_yticks(phy2pixel(ticks), ticks)
-        axes[1, 0].set_ylabel(r"$Y$ [kpc]")
         # reset the last x ticks
         axes[1, 2].set_xticks(phy2pixel(ticks), ticks)
+        # set the y ticks and label
+        ticks = np.around(np.linspace(-size, size, tickNum_y), 1)
+        axes[1, 0].set_yticks(phy2pixel(ticks), ticks)
+        axes[1, 0].set_ylabel(r"$Y$ [kpc]")
 
         # save or show the figure if necessary
         if saveToDir != "":
