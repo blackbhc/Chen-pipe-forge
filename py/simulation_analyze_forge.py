@@ -396,6 +396,163 @@ class snapshot_utils(object):
             plt.show()
         plt.close(fig)
 
+    def face_on_star_gas(
+        self,
+        coordinates,
+        cmaps=["bone", "bone", "copper"],
+        tickNum2=9,
+        interpolation="none",
+        size=20,
+        binNum=100,
+        vmin=None,
+        vmax=None,
+        tickNum1=9,
+        showContours=[True, False, False],
+        contourLevels=9,
+        showFig=False,
+        saveToDir="",
+        t=-1,
+        Rbar=-1,
+    ):
+        """
+        Plot the image of a snapshot: face-on views of the old stars, new born stars, and gas.
+        -----
+        coordinates: list or similiar structure for the old stars, new born stars, and gas.
+        cmaps: the corresponding colormap for the old stars, new born stars, and gas.
+        """
+
+        # functions that transforms the physical value to the pixel values
+        def phy2pixel(data):
+            return (data - -size) / (2 * size) * (binNum - 1)
+
+        # function to calculate the logarithm of a 2D matrix, which is later used to calculate log(Sigma)
+        def logNormMat(matrix):
+            mat = 1 * matrix
+            index = np.where(mat < 1)
+            mat[index] = 1
+            mat = np.log10(mat)
+            mat[index] = None
+            return mat
+
+        # define the parameters of the figure
+        basic = 6
+        wCbar = 0.1
+        w = basic
+        h = basic
+        h_cbar = basic * 0.05
+        leftMargin = 2
+        rightMargin = 1.7
+        lowerMargin = 1
+        upperMargin = 0.5
+        W = w * 3 + leftMargin + rightMargin
+        H = h * 2 + lowerMargin + upperMargin
+        fig = plt.figure(figsize=(W, H))
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(W, H))
+
+        colorbar_labels = [
+            r"$\lg N_{\rm old}$",
+            r"$\lg N_{\rm new}$",
+            r"$\lg N_{\rm gas}$",
+        ]
+        for i in range(3):
+            ax = axes[1, i]
+            cax = axes[0, i]
+            ax = fig.add_axes(
+                [
+                    (leftMargin + i * w) / W,
+                    lowerMargin / H,
+                    w / W,
+                    h / H,
+                ]
+            )
+            cax = fig.add_axes(
+                [
+                    (leftMargin + i * w) / W,
+                    (lowerMargin + h * 1.1) / H,
+                    w / W,
+                    h_cbar / H,
+                ]
+            )
+
+            coord = coordinates[i]
+            cmap = cmaps[i]
+            label = colorbar_labels[i]
+            showContour = showContours[i]
+            # x-y image
+            image = bin2d(
+                x=coord[:, 1],
+                y=coord[:, 0],
+                values=coord[:, 0],
+                range=[[-size, size], [-size, size]],
+                bins=binNum,
+                statistic="count",
+            )[0]
+            image = logNormMat(image)
+            im = ax.imshow(
+                image,
+                origin="lower",
+                vmin=vmin,
+                vmax=vmax,
+                cmap=cmap,
+                interpolation=interpolation,
+            )
+            # plot the colorbar
+            plt.colorbar(mappable=im, cax=cax, label=label, orientation="horizontal")
+
+            # plot the iso-density contours
+            if showContour:
+                contourX, contourY = np.meshgrid(
+                    np.arange(0, image.shape[0]), np.arange(0, image.shape[1])
+                )
+                ax.contour(
+                    contourX,
+                    contourY,
+                    image,
+                    levels=contourLevels,
+                    colors="black",
+                    alpha=0.5,
+                    linewidths=1,
+                    origin="lower",
+                )
+
+            # calculate the ticks
+            ticks = np.around(np.linspace(-size, size, tickNum1), 1)
+            # setup the ticks
+            ax.set_xticks(phy2pixel(ticks[:-1]), ticks[:-1])
+            # set up the labels of axes
+            ax.set_xlabel(r"$X$ [kpc]")
+
+            # show the time of the snapshot
+            showText = ""
+            if t >= 0:
+                showText += f"t={t:.2f} Gyr"
+                ax.text(
+                    phy2pixel(-0.9 * size),
+                    phy2pixel(0.85 * size),
+                    showText,
+                    ma="center",
+                    color="red",
+                )
+
+            # plot a circle for Rbar
+            if Rbar > 0:
+                thetas = np.linspace(0, np.pi * 2, 72)
+                plotXs = Rbar * np.cos(thetas)
+                plotYs = Rbar * np.sin(thetas)
+                ax.plot(phy2pixel(plotXs), phy2pixel(plotYs), "r-")
+
+        axes[1, 0].set_yticks(phy2pixel(ticks), ticks)
+        axes[1, 0].set_ylabel(r"$Y$ [kpc]")
+        # reset the last x ticks
+        axes[1, 2].set_xticks(phy2pixel(ticks), ticks)
+
+        # save or show the figure if necessary
+        if saveToDir != "":
+            plt.savefig(saveToDir)
+        if showFig:
+            plt.show()
+        plt.close(fig)
+
     def view_surface_density(
         self,
         coordinates,
