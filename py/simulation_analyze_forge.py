@@ -439,14 +439,15 @@ class snapshot_utils(object):
         wCbar = 0.1
         w = basic
         h = basic
+        hgap = h * 0.18
         h_cbar = basic * 0.05
-        leftMargin = 2
-        rightMargin = 1.7
+        leftMargin = 1.6
+        rightMargin = 0.6
         lowerMargin = 1
-        upperMargin = 0.5
+        upperMargin = 0.4
         W = w * 3 + leftMargin + rightMargin
-        H = h * 2 + lowerMargin + upperMargin
-        fig = plt.figure(figsize=(W, H))
+        H = h + hgap + lowerMargin + upperMargin
+        figInit = plt.figure()
         fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(W, H))
 
         colorbar_labels = [
@@ -457,7 +458,7 @@ class snapshot_utils(object):
         for i in range(3):
             ax = axes[1, i]
             cax = axes[0, i]
-            ax = fig.add_axes(
+            ax.set_position(
                 [
                     (leftMargin + i * w) / W,
                     lowerMargin / H,
@@ -465,10 +466,10 @@ class snapshot_utils(object):
                     h / H,
                 ]
             )
-            cax = fig.add_axes(
+            cax.set_position(
                 [
                     (leftMargin + i * w) / W,
-                    (lowerMargin + h * 1.1) / H,
+                    (lowerMargin + h + hgap) / H,
                     w / W,
                     h_cbar / H,
                 ]
@@ -554,6 +555,7 @@ class snapshot_utils(object):
             plt.savefig(saveToDir)
         if showFig:
             plt.show()
+        plt.close(figInit)
         plt.close(fig)
 
     def view_surface_density(
