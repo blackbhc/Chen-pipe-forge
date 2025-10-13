@@ -478,6 +478,8 @@ class snapshot_utils(object):
             cmap = cmaps[i]
             label = colorbar_labels[i]
             showContour = showContours[i]
+            if len(coord) == 0:
+                continue  # boundary case for which there is no effective data
             # x-y image
             image = bin2d(
                 x=coord[:, 1],
