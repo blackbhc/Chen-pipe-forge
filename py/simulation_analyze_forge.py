@@ -447,7 +447,7 @@ class snapshot_utils(object):
         W = w * 3 + leftMargin + rightMargin
         H = h * 2 + lowerMargin + upperMargin
         fig = plt.figure(figsize=(W, H))
-        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(W, H))
+        fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(W, H))
 
         colorbar_labels = [
             r"$\lg N_{\rm old}$",
