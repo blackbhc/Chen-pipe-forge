@@ -556,6 +556,14 @@ class snapshot_utils(object):
         axes[1, 0].set_yticks(phy2pixel(ticks), ticks)
         axes[1, 0].set_ylabel(r"$Y$ [kpc]")
 
+        # plot a circle for Rbar
+        if Rbar > 0:
+            thetas = np.linspace(0, np.pi * 2, 72)
+            plotXs = Rbar * np.cos(thetas)
+            plotYs = Rbar * np.sin(thetas)
+            for i in range(3):
+                axes[1, i].plot(phy2pixel(plotXs), phy2pixel(plotYs), "r-")
+
         # save or show the figure if necessary
         if saveToDir != "":
             plt.savefig(saveToDir)
