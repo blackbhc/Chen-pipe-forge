@@ -480,6 +480,10 @@ class snapshot_utils(object):
             label = colorbar_labels[i]
             showContour = showContours[i]
             if len(coord) == 0:
+                ax.set_xticks([])
+                ax.set_yticks([])
+                cax.set_xticks([])
+                cax.set_yticks([])
                 continue  # boundary case for which there is no effective data
             # x-y image
             image = bin2d(
@@ -521,6 +525,8 @@ class snapshot_utils(object):
             # setup the x ticks
             ticks = np.around(np.linspace(-size, size, tickNum_x), 1)
             ax.set_xticks(phy2pixel(ticks[:-1]), ticks[:-1])
+            # remove the y ticks
+            ax.set_yticks([])
             # set up the labels of axes
             ax.set_xlabel(r"$X$ [kpc]")
 
