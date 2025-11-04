@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from scipy.stats import binned_statistic_2d as bin2d
 from scipy.interpolate import interp1d
 from scipy.stats import linregress
+from scipy.optimize import curve_fit
 
 plt.rcParams.update(
     {
@@ -178,6 +179,22 @@ class snapshot_utils(object):
         rEdges = np.linspace(Rmin, Rmax, RbinNum + 1)  # bin edges of radius
         rs = (rEdges[1:] + rEdges[:-1]) / 2  # central radii of the bins
         return rs, means
+
+    def Sersic_index(Rs, surface_density):
+        """
+        Calculate the Sersic index from the radial surface density profile.
+        """
+
+        # Sersic profile in ln I(R)
+        def sersic_profile(R, ln_I0, k, n):
+            return ln_I0 - k * R ** (1 / n)  # return ln I(R)
+
+        popt, pcovs = curve_fit(sersic_profile, Rs, np.log(surface_density))
+        errors = np.sqrt(np.diag(pcovs))
+        n = popt[-1]
+        nerr = errors[-1]
+
+        return n, nerr
 
     def view_snapshot(
         self,
