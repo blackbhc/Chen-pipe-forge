@@ -180,7 +180,7 @@ class snapshot_utils(object):
         rs = (rEdges[1:] + rEdges[:-1]) / 2  # central radii of the bins
         return rs, means
 
-    def Sersic_index(Rs, surface_density):
+    def Sersic_index(self, Rs, surface_density):
         """
         Calculate the Sersic index from the radial surface density profile.
         """
