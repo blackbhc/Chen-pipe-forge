@@ -71,6 +71,8 @@ class snapshot_utils(object):
         masses,
         haloCoordinates=[],
         haloVelocities=[],
+        gasCoordinates=[],
+        gasVelocities=[],
         encloseRadius=-1,
     ):
         """
@@ -102,17 +104,39 @@ class snapshot_utils(object):
 
         rotation = np.column_stack((newX, newY, newZ)).T
 
-        if len(haloCoordinates) == 0:
+        if len(haloCoordinates) == 0 and len(gasCoordinates) == 0:
             coordinates_ = np.matmul(rotation, coordinates.T).T
             velocities_ = np.matmul(rotation, velocities.T).T
             return coordinates_, velocities_
-        else:
+        elif len(haloCoordinates) != 0 and len(gasCoordinates) == 0:
             # if given halo datasets, also rotate them
             haloCoordinates_ = np.matmul(rotation, haloCoordinates.T).T
             haloVelocities_ = np.matmul(rotation, haloVelocities.T).T
             coordinates_ = np.matmul(rotation, coordinates.T).T
             velocities_ = np.matmul(rotation, velocities.T).T
             return coordinates_, velocities_, haloCoordinates_, haloVelocities_
+        elif len(haloCoordinates) == 0 and len(gasCoordinates) != 0:
+            # if given halo datasets, also rotate them
+            gasCoordinates_ = np.matmul(rotation, gasCoordinates.T).T
+            gasVelocities_ = np.matmul(rotation, gasVelocities.T).T
+            coordinates_ = np.matmul(rotation, coordinates.T).T
+            velocities_ = np.matmul(rotation, velocities.T).T
+            return coordinates_, velocities_, gasCoordinates_, gasVelocities_
+        else:
+            gasCoordinates_ = np.matmul(rotation, gasCoordinates.T).T
+            gasVelocities_ = np.matmul(rotation, gasVelocities.T).T
+            haloCoordinates_ = np.matmul(rotation, haloCoordinates.T).T
+            haloVelocities_ = np.matmul(rotation, haloVelocities.T).T
+            coordinates_ = np.matmul(rotation, coordinates.T).T
+            velocities_ = np.matmul(rotation, velocities.T).T
+            return (
+                coordinates_,
+                velocities_,
+                haloCoordinates_,
+                haloVelocities_,
+                gasCoordinates_,
+                gasVelocities_,
+            )
 
     def radial_profile_surface_density(
         self,
