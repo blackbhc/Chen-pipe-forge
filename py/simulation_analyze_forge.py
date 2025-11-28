@@ -251,9 +251,9 @@ class snapshot_utils(object):
         hFaceOn = basic
         hEdgeOn = basic * ratio
         leftMargin = 2
-        rightMargin = 1.7
-        lowerMargin = 1
-        upperMargin = 0.5
+        rightMargin = 2
+        lowerMargin = 2
+        upperMargin = 2
         W = w + hEdgeOn + leftMargin + rightMargin
         H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
         fig = plt.figure(figsize=(W, H))
@@ -432,7 +432,7 @@ class snapshot_utils(object):
 
         # save or show the figure if necessary
         if saveToDir != "":
-            plt.savefig(saveToDir)
+            plt.savefig(saveToDir, bbox_inches="tight")
         if showFig:
             plt.show()
         plt.close(fig)
@@ -482,10 +482,10 @@ class snapshot_utils(object):
         h = basic
         hgap = h * 0.18
         h_cbar = basic * 0.05
-        leftMargin = 1.6
-        rightMargin = 0.6
-        lowerMargin = 1
-        upperMargin = 0.4
+        leftMargin = 2
+        rightMargin = 2
+        lowerMargin = 2
+        upperMargin = 2
         W = w * 3 + leftMargin + rightMargin
         H = h + hgap + lowerMargin + upperMargin
         figInit = plt.figure()
@@ -607,7 +607,7 @@ class snapshot_utils(object):
 
         # save or show the figure if necessary
         if saveToDir != "":
-            plt.savefig(saveToDir)
+            plt.savefig(saveToDir, bbox_inches="tight")
         if showFig:
             plt.show()
         plt.close(figInit)
@@ -645,9 +645,9 @@ class snapshot_utils(object):
         hFaceOn = basic
         hEdgeOn = basic * ratio
         leftMargin = 2
-        rightMargin = 1.7
-        lowerMargin = 1
-        upperMargin = 0.5
+        rightMargin = 2
+        lowerMargin = 2
+        upperMargin = 2
         W = w + hEdgeOn + leftMargin + rightMargin
         H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
         fig = plt.figure(figsize=(W, H))
@@ -828,7 +828,7 @@ class snapshot_utils(object):
 
         # save or show the figure if necessary
         if saveToDir != "":
-            plt.savefig(saveToDir)
+            plt.savefig(saveToDir, bbox_inches="tight")
         if showFig:
             plt.show()
         plt.close(fig)
@@ -865,10 +865,10 @@ class snapshot_utils(object):
         w = basic
         hFaceOn = basic
         hEdgeOn = basic * ratio
-        leftMargin = 1.5
-        rightMargin = 1.7
-        lowerMargin = 1
-        upperMargin = 0.5
+        leftMargin = 2
+        rightMargin = 2
+        lowerMargin = 2
+        upperMargin = 2
         W = w + hEdgeOn + leftMargin + rightMargin
         H = hFaceOn + hEdgeOn + lowerMargin + upperMargin
         fig = plt.figure(figsize=(W, H))
@@ -1074,7 +1074,7 @@ class snapshot_utils(object):
 
         # save or show the figure if necessary
         if saveToDir != "":
-            plt.savefig(saveToDir)
+            plt.savefig(saveToDir, bbox_inches="tight")
         if showFig:
             plt.show()
         plt.close(fig)
