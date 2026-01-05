@@ -32,6 +32,7 @@ snapH5io::snapH5io( std::string inFile, std::string outFile )
 
     H5Aclose( attr_id );
     H5Gclose( header );
+    delete[] partNums;
 }
 
 snapH5io::~snapH5io()
