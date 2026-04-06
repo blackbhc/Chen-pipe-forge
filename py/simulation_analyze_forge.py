@@ -1213,10 +1213,34 @@ class snapshot_utils(object):
         Vphi = self.inner_product(unit_phi, velocities)  # azimuthal velocity
         vecVr = np.column_stack((Vr, Vr, Vr)) * unit_r
         vecVphi = np.column_stack((Vphi, Vphi, Vphi)) * unit_phi
-        Vtheta = velocities - vecVr - vecVphi
+        unit_theta = np.cross(unit_r, unit_phi)
+        Vtheta = self.inner_product(unit_theta, velocities - vecVr - vecVphi)
         oCoordinates = np.column_stack((rs, phi, theta))
         oVeloicties = np.column_stack((Vr, Vphi, Vtheta))
         return oCoordinates, oVeloicties
+
+    def sph2car(self, coordinates, velocities):
+        """
+        Transform the coordinates and velocities from the spherical coordinates to cartesian coordinates.
+        Require the input coordinates and velocities in (r, phi, theta) order.
+        Return: the transformed coordinates and velocities, all in the (x, y, z) order.
+        """
+        rs, phis, thetas = coordinates.T
+        Vrs, Vphis, Vthetas = velocities.T
+        xs = rs * np.sin(thetas) * np.cos(phis)
+        ys = rs * np.sin(thetas) * np.sin(phis)
+        zs = rs * np.cos(thetas)
+        oCoordinates = np.column_stack((xs, ys, zs))  # output coordinates
+        unit_r = oCoordinates / np.column_stack((rs, rs, rs))  # unit radial vector
+        unit_phi = np.column_stack(
+            (-np.sin(phis), np.cos(phis), np.zeros(len(phis)))
+        )  # unit azimuthal vector
+        unit_theta = np.cross(unit_r, unit_phi)
+        vxs = Vrs * unit_r.T[0] + Vphis * unit_phi.T[0] + Vthetas * unit_theta.T[0]
+        vys = Vrs * unit_r.T[1] + Vphis * unit_phi.T[1] + Vthetas * unit_theta.T[1]
+        vzs = Vrs * unit_r.T[2] + Vphis * unit_phi.T[2] + Vthetas * unit_theta.T[2]
+        oVelocities = np.column_stack((vxs, vys, vzs))
+        return oCoordinates, oVelocities
 
     def car2cyl(self, coordinates, velocities):
         """
