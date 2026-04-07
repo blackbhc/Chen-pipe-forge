@@ -74,6 +74,7 @@ class snapshot_utils(object):
         gasCoordinates=[],
         gasVelocities=[],
         encloseRadius=-1,
+        returnRotMat=False,
     ):
         """
         Align the disk plane to the Oxy plane, through aligning the total angular to z axis.
@@ -103,6 +104,8 @@ class snapshot_utils(object):
         newX = newX / np.linalg.norm(newX)  # normalization
 
         rotation = np.column_stack((newX, newY, newZ)).T
+        if returnRotMat:
+            return rotation
 
         if len(haloCoordinates) == 0 and len(gasCoordinates) == 0:
             coordinates_ = np.matmul(rotation, coordinates.T).T
